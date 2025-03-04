@@ -1,0 +1,200 @@
+/* src/components/Header.css */
+
+/* General Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 0;
+}
+
+/* Header Styling */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background-color: #00004D;
+  color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* Logo */
+.header .logo {
+  flex: 1;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.logo-image {
+  height: 60px;
+  width: auto;
+  transition: transform 0.3s ease;
+}
+
+.logo-image:hover {
+  transform: scale(1.1); /* Slight logo hover effect */
+}
+
+/* Navigation Menu (Centered) */
+.nav-menu ul {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  flex: 2;
+  align-items: center;
+  text-align: center;
+  padding-right: 130px;
+}
+
+.nav-menu ul li {
+  margin: 0 15px;
+}
+
+.nav-menu ul li a {
+  color: white;
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.nav-menu ul li a:hover {
+  color: #DF1C1C;
+  transform: translateY(-3px); /* Small hover lift effect */
+}
+
+/* Right Buttons (Sign Up, Login) */
+.auth-buttons {
+  flex: 0.5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  vertical-align: middle;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.signup-btn,
+.login-btn {
+  padding: 12px 25px;
+  font-size: 16px;
+  cursor: pointer;
+  border: none;
+  border-radius: 30px;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.signup-btn {
+  background-color: #DF1C1C; /* Green for signup */
+  color: white;
+}
+
+.signup-btn:hover {
+  background-color: #008CBA;
+  transform: translateY(-2px); /* Slight lift effect on hover */
+}
+
+.login-btn {
+  background-color: #DF1C1C; /* Blue for login */
+  color: white;
+}
+
+.login-btn:hover {
+  background-color: #008CBA;
+  transform: translateY(-2px); /* Slight lift effect on hover */
+}
+
+/* Hamburger Menu */
+.hamburger-menu {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 30px;
+  height: 25px;
+  cursor: pointer;
+  color: white;
+}
+
+.hamburger-menu div {
+  background-color: white;
+  height: 4px;
+  width: 100%;
+  border-radius: 4px;
+}
+
+/* Mobile Navigation */
+.mobile-nav {
+  display: none;
+  width: 100%;
+  text-align: center;
+}
+
+.mobile-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mobile-nav ul li {
+  margin: 10px 0;
+}
+
+.mobile-nav ul li a {
+  color: white;
+  font-size: 20px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* Responsive Design for Smaller Screens */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
+  }
+
+  .nav-menu ul {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .nav-menu ul li {
+    margin: 15px 0;
+  }
+
+  .auth-buttons {
+    width: 100%;
+    justify-content: center;
+    margin-top: 10px;
+  }
+
+  .logo-image {
+    height: 40px;
+  }
+
+  /* Show hamburger menu on mobile */
+  .hamburger-menu {
+    display: flex;
+    color: white
+  }
+
+  .mobile-nav {
+    display: block;
+  }
+}

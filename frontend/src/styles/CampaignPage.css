@@ -1,0 +1,51 @@
+.campaign-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 50px;
+}
+
+.campaign-card {
+  display: flex;
+  flex-direction: row;
+  width: 80%;
+  box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.campaign-content {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+
+.campaign-image {
+  width: 50%;
+  object-fit: cover;
+}
+
+.campaign-details {
+  width: 50%;
+  padding: 20px;
+}
+
+.progress-bar {
+  height: 10px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+.donate-button {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 20px;
+  font-size: 18px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.donate-button:hover {
+  background-color: #0056b3;
+}

@@ -1,0 +1,29 @@
+.company-dashboard-container {
+    padding: 20px;
+    background-color: #f4f6f8;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  
+  .company-info {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .company-info h3 {
+    margin-bottom: 20px;
+  }
+  
+  .company-info p {
+    font-size: 1.1rem;
+    margin: 5px 0;
+  }
+  
+  .company-info strong {
+    font-weight: bold;
+  }
+  

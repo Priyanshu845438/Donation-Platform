@@ -1,0 +1,29 @@
+/* src/styles/global.css */
+
+/* Reset some default browser styles for consistency */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Apply a simple font family globally */
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f4f4f4;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* Set up a consistent layout for the entire page */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+/* Global container for center alignment of page content */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}

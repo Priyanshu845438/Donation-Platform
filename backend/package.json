@@ -1,0 +1,29 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "description": "",
+  "dependencies": {
+    "axios": "^1.8.1",
+    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.2",
+    "cashfree-sdk": "^0.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.11.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemon": "^3.1.9",
+    "uuid": "^11.1.0"
+  }
+}

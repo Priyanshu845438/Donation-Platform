@@ -1,0 +1,68 @@
+/* src/styles/NGODashboard.css */
+
+.ngo-dashboard {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f4f6f8;
+    padding: 40px;
+    min-height: 100vh;
+  }
+  
+  .ngo-dashboard h2 {
+    text-align: center;
+    color: #3f51b5;
+    font-size: 2rem;
+    margin-bottom: 20px;
+  }
+  
+  .dashboard-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  section {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    padding: 20px;
+    width: 80%;
+  }
+  
+  section h3 {
+    font-size: 1.5rem;
+    color: #3f51b5;
+    margin-bottom: 10px;
+  }
+  
+  section ul {
+    list-style: none;
+    padding: 0;
+  }
+  
+  section ul li {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    margin: 5px 0;
+    padding: 10px;
+  }
+  
+  button {
+    background-color: #3f51b5;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s;
+  }
+  
+  button:hover {
+    background-color: #303f9f;
+  }
+  
+  button:active {
+    background-color: #1a237e;
+  }
+  

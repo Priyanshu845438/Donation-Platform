@@ -45,6 +45,4 @@ router.get("/company/:id", authMiddleware(["ngo"]), async (req, res) => {
     }
 });
 
-
-
 module.exports = router;

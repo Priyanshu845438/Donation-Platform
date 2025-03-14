@@ -8,11 +8,37 @@ router.post("/create-payment-session", async (req, res) => {
   try {
     const { campaignId, amount, donorName, donorEmail, donorPhone } = req.body;
 
-    if (!campaignId || !amount || !donorName || !donorEmail || !donorPhone) {
-      return res.status(400).json({ error: "Missing required fields" });
+    // Enhanced input validation
+    if (!campaignId || !mongoose.Types.ObjectId.isValid(campaignId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid campaign ID"
+      });
     }
 
-    // Call Cashfree API to create a payment session
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid donation amount"
+      });
+    }
+
+    if (!donorName || !donorEmail || !donorPhone) {
+      return res.status(400).json({
+        success: false,
+        message: "Donor details are required"
+      });
+    }
+
+    // Validate email format
+    if (!/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(donorEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email format"
+      });
+    }
+
+    // Create payment session with Cashfree
     const response = await axios.post(
       "https://sandbox.cashfree.com/pg/orders",
       {
@@ -23,6 +49,9 @@ router.post("/create-payment-session", async (req, res) => {
           customer_email: donorEmail,
           customer_phone: donorPhone,
         },
+        order_meta: {
+          campaign_id: campaignId
+        }
       },
       {
         headers: {
@@ -30,15 +59,24 @@ router.post("/create-payment-session", async (req, res) => {
           "x-client-secret": process.env.CASHFREE_CLIENT_SECRET,
           "x-api-version": "2022-01-01",
           "Content-Type": "application/json",
-        },
+        }
       }
     );
 
-    res.json({ paymentSessionId: response.data.payment_session_id });
+    res.status(200).json({
+      success: true,
+      message: "Payment session created successfully",
+      paymentSessionId: response.data.payment_session_id,
+      orderId: response.data.order_id
+    });
 
   } catch (error) {
-    console.error("Cashfree API Error:", error.response?.data || error.message);
-    res.status(500).json({ error: "Payment session creation failed" });
+    console.error("Payment Session Error:", error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create payment session",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

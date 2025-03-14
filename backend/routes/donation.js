@@ -8,7 +8,7 @@ const { v4: uuidv4 } = require("uuid");
 // 💰 Make a Donation (Authenticated Users)
 router.post("/donate/:campaignId", authMiddleware(["admin", "ngo", "user", "company"]), async (req, res) => {
     try {
-        const { amount, donorName, donorEmail, donorPhone } = req.body;
+        const { amount, paymentMethod, isAnonymous, panNumber } = req.body;
         const { campaignId } = req.params;
 
         // Find the campaign
@@ -17,32 +17,33 @@ router.post("/donate/:campaignId", authMiddleware(["admin", "ngo", "user", "comp
             return res.status(404).json({ message: "Campaign not found" });
         }
 
-        // Generate unique orderId
-        const orderId = uuidv4();
+        // Generate unique transactionId
+        const transactionId = uuidv4();
 
         // Create a new donation
         const donation = new Donation({
-            orderId,
-            amount,
-            donorName,
-            donorEmail,
-            donorPhone,
+            donorId: req.user.id,
             campaignId,
-            donationLink: `http://localhost:5000/api/donations/payment/${orderId}`, // Fixed donation link
+            amount,
+            paymentMethod,
+            transactionId,
+            isAnonymous,
+            panNumber,
+            donationLink: `http://localhost:5000/api/donations/payment/${transactionId}`, // Fixed donation link
         });
 
         // Save the donation
         await donation.save();
 
-        // Update campaign raised amount
-        campaign.raisedAmount += amount;
+        // Update campaign collected amount
+        campaign.collectedAmount += amount;
         await campaign.save();
 
         res.status(201).json({
             success: true,
             message: "Donation made successfully",
             donationId: donation._id,
-            orderId,
+            transactionId,
             campaignId,
         });
     } catch (error) {
@@ -54,7 +55,7 @@ router.post("/donate/:campaignId", authMiddleware(["admin", "ngo", "user", "comp
 // 💰 Make a Donation (External Users)
 router.post("/donate-external/:campaignId", async (req, res) => {
     try {
-        const { amount, donorName, donorEmail, donorPhone } = req.body;
+        const { amount, paymentMethod, isAnonymous, panNumber } = req.body;
         const { campaignId } = req.params;
 
         // Find the campaign
@@ -63,32 +64,33 @@ router.post("/donate-external/:campaignId", async (req, res) => {
             return res.status(404).json({ message: "Campaign not found" });
         }
 
-        // Generate unique orderId
-        const orderId = uuidv4();
+        // Generate unique transactionId
+        const transactionId = uuidv4();
 
         // Create a new donation
         const donation = new Donation({
-            orderId,
-            amount,
-            donorName,
-            donorEmail,
-            donorPhone,
+            donorId: null, // External user
             campaignId,
-            donationLink: `http://localhost:5000/api/donations/payment/${orderId}`, // Fixed donation link
+            amount,
+            paymentMethod,
+            transactionId,
+            isAnonymous,
+            panNumber,
+            donationLink: `http://localhost:5000/api/donations/payment/${transactionId}`, // Fixed donation link
         });
 
         // Save the donation
         await donation.save();
 
-        // Update campaign raised amount
-        campaign.raisedAmount += amount;
+        // Update campaign collected amount
+        campaign.collectedAmount += amount;
         await campaign.save();
 
         res.status(201).json({
             success: true,
             message: "Donation made successfully",
             donationId: donation._id,
-            orderId,
+            transactionId,
             campaignId,
         });
     } catch (error) {
@@ -120,7 +122,7 @@ router.get("/campaign/:campaignId", authMiddleware(["admin", "ngo"]), async (req
         }
 
         // Check if the user is an admin or the NGO owner
-        if (req.user.role !== "admin" && campaign.ngo.toString() !== req.user.id) {
+        if (req.user.role !== "admin" && campaign.createdBy.toString() !== req.user.id) {
             return res.status(403).json({ message: "Not authorized to view donations for this campaign" });
         }
 

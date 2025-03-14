@@ -64,8 +64,8 @@ router.get("/dashboard", authMiddleware, async (req, res) => {
   
       // Send company data (modify as per your model structure)
       res.json({
-        name: company.name,
-        email: company.email,
+        companyName: company.companyName,
+        companyEmail: company.companyEmail,
         campaigns: company.campaigns, // Assuming campaigns is an array in the Company model
       });
     } catch (error) {

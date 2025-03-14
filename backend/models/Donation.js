@@ -1,45 +1,27 @@
 const mongoose = require("mongoose");
-const { v4: uuidv4 } = require("uuid");
 
-const donationSchema = new mongoose.Schema({
-
-    orderId: {
-        type: String,
-        required: true,
-        unique: true,
-        default: () => uuidv4() // Generate a unique orderId when a donation is created
-    },
-
-    amount: {
-        type: Number,
-        required: true,
-    },
-    donorName: {
-        type: String,
-        required: true,
-    },
-    donorEmail: {
-        type: String,
-        required: true,
-    },
-    donorPhone: {
-        type: String,
-        required: true,
-    },
-    campaignId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Campaign",
-        required: true,
-    },
+const donationSchema = new mongoose.Schema(
+  {
+    donorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Donor Reference
+    campaignId: { type: mongoose.Schema.Types.ObjectId, ref: "Campaign", required: true }, // Campaign Reference
+    amount: { type: Number, required: true, min: 1 }, // Donation amount
+    paymentMethod: { 
+      type: String, 
+      enum: ["UPI", "Net Banking", "Credit Card", "Debit Card", "Wallet", "Cheque", "Bank Transfer"], 
+      required: true 
+    }, // Payment Method Dropdown
+    transactionId: { type: String, required: true, unique: true }, // Unique Transaction ID
+    donationDate: { type: Date, default: Date.now }, // Donation Date
+    isAnonymous: { type: Boolean, default: false }, // Whether donor wants to stay anonymous
+    receiptUrl: { type: String, required: false }, // Receipt (for 80G tax exemption)
+    panNumber: { type: String, required: true }, // PAN Card (Govt. requirement)
     status: {
-        type: String,
-        default: "PENDING",
-    },
-    donationLink: {
-        type: String,
-        required: true,
-    }
-    
-}, { timestamps: true });
+      type: String,
+      enum: ["Pending", "Completed", "Failed"],
+      default: "Pending"
+    }, // Donation status
+  },
+  { timestamps: true }
+);
 
 module.exports = mongoose.model("Donation", donationSchema);

@@ -1,10 +1,14 @@
 const bcrypt = require("bcrypt");
 
-const password = "company@123"; // Change this to your desired password
-bcrypt.hash(password, 10, (err, hash) => {
-    if (err) {
-        console.error("Error hashing password:", err);
-    } else {
-        console.log("Hashed Password:", hash);
-    }
-});
+const testPassword = "Acadify@123"; // The password you expect to match
+const storedHash = "$2b$10$DoqvUtAUa0hDSJD5Ed4wNOu0AKTIxHUfY02/5gIqpgym1imuV1fHi"; // Get this from MongoDB
+
+async function testPasswordMatch() {
+    const newHash = await bcrypt.hash(testPassword, 10);
+    console.log("Newly Hashed Password:", newHash);
+
+    const isMatch = await bcrypt.compare(testPassword, storedHash);
+    console.log("Does it match?:", isMatch);
+}
+
+testPasswordMatch();

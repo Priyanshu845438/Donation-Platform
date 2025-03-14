@@ -1,41 +1,34 @@
 const express = require("express");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 const User = require("../models/User");
+const verifyToken = require("../middleware/auth");
+
 const router = express.Router();
 
-router.post("/signup", async (req, res) => {
-    const { name, email, password, role } = req.body;
-
-    if (!name || !email || !password || !role) {
-        return res.status(400).json({ message: "All fields are required" });
-    }
-
+router.put("/profile", verifyToken, async (req, res) => {
     try {
-        // Check if the user already exists
-        const userExists = await User.findOne({ email });
-        if (userExists) {
-            return res.status(400).json({ message: "Email already in use" });
+        console.log("User ID from token:", req.user.id); // Debugging step
+
+        // Validate ObjectId before querying MongoDB
+        if (!mongoose.Types.ObjectId.isValid(req.user.id)) {
+            return res.status(400).json({ message: "Invalid user ID format" });
         }
 
-        // Hash the password
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const updates = req.body;
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user.id,
+            updates,
+            { new: true }
+        ).select("-password");
 
-        // Create a new user
-        const newUser = new User({
-            name,
-            email,
-            password: hashedPassword,
-            role,
-        });
+        if (!updatedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
 
-        // Save the user to the database
-        await newUser.save();
-
-        res.status(201).json({ message: "User registered successfully!" });
+        res.status(200).json({ message: "Profile updated successfully", updatedUser });
     } catch (error) {
-        console.error("Error signing up:", error);
-        res.status(500).json({ message: "Internal server error" });
+        console.error("Error updating profile:", error);
+        res.status(500).json({ message: "Error updating profile" });
     }
 });
 

@@ -1,41 +1,48 @@
 const mongoose = require("mongoose");
 
-const ngoSchema = new mongoose.Schema(
-  {
-    ngoName: { type: String, required: true, unique: true }, // NGO Name
-    registrationNumber: { type: String, required: true, unique: true }, // Govt. Registration Number
-    registeredYear: { type: Number, required: true }, // Year of Registration
-    address: { type: String, required: true }, // Registered Address
-    contactNumber: { type: String, required: true }, // NGO Contact Number
-    email: { type: String, required: true, unique: true }, // Official Email
-    website: { type: String, required: false }, // NGO Website (Optional)
+const ngoSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    ngoName: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    contactNumber: { type: String, required: true },
+
+    registrationNumber: { type: String, default: null },
+    registeredYear: { type: Number, default: null },
+    address: { type: String, default: null },
+    website: { type: String, default: null },
+
     authorizedPerson: {
-      name: { type: String, required: true }, // Authorized Representative Name
-      phone: { type: String, required: true }, // Authorized Person Contact
-      email: { type: String, required: true, unique: true } // Authorized Person Email
+        name: { type: String, default: null },
+        phone: { type: String, default: null },
+        email: { type: String, default: null }
     },
-    panNumber: { type: String, required: true, unique: true }, // PAN Card for Govt. Compliance
-    tanNumber: { type: String, required: false, unique: true }, // TAN Number (If applicable)
-    gstNumber: { type: String, required: false, unique: true }, // GST Number (If applicable)
-    numberOfEmployees: { type: Number, required: true }, // Total Number of Employees
+
+    // ✅ Apply `{ unique: true, sparse: true }` to allow multiple `null` values
+    panNumber: { type: String, default: null, unique: true, sparse: true },
+    tanNumber: { type: String, default: null, unique: true, sparse: true },
+    gstNumber: { type: String, default: null, unique: true, sparse: true },
+
+    numberOfEmployees: { type: Number, default: null },
+
     ngoType: {
-      type: String,
-      enum: ["Trust", "Society", "Section 8 Company", "Other"],
-      required: true
-    }, // NGO Type Dropdown
-    is80GCertified: { type: Boolean, default: false }, // 80G Tax Exemption Eligibility
-    is12ACertified: { type: Boolean, default: false }, // 12A Tax Exemption Eligibility
+        type: String,
+        enum: ["Trust", "Society", "Section 8 Company", "Other"],
+        default: null
+    },
+
+    is80GCertified: { type: Boolean, default: false },
+    is12ACertified: { type: Boolean, default: false },
+
     bankDetails: {
-      accountHolderName: { type: String, required: true },
-      accountNumber: { type: String, required: true, unique: true },
-      ifscCode: { type: String, required: true },
-      bankName: { type: String, required: true },
-      branchName: { type: String, required: true }
-    }, // Bank Account Details for Donations
-    logo: { type: String, required: false }, // NGO Logo/Profile Image
-    isActive: { type: Boolean, default: true } // Active Status
-  },
-  { timestamps: true }
-);
+        accountHolderName: { type: String, default: null },
+        accountNumber: { type: String, default: null, unique: true, sparse: true },
+        ifscCode: { type: String, default: null },
+        bankName: { type: String, default: null },
+        branchName: { type: String, default: null }
+    },
+
+    logo: { type: String, default: null },
+    isActive: { type: Boolean, default: true }
+}, { timestamps: true });
 
 module.exports = mongoose.model("NGO", ngoSchema);

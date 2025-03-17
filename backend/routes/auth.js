@@ -10,10 +10,8 @@ const path = require("path");
 const nodemailer = require("nodemailer");
 require("dotenv").config(); // Load environment variables
 const crypto = require("crypto");
-const activityLogger = require('../middleware/activityLogger');
-
-
-
+const Activity = require('../models/Activity');  // Adjust the path if needed
+const activityLogger = require('../middleware/activityLogger');  // Adjust the path if needed
 
 
 const router = express.Router();
@@ -52,16 +50,18 @@ router.post("/signup", async (req, res) => {
             return res.status(400).json({ message: "All fields are required" });
         }
 
-        if (!["NGO", "Company", "Admin", "Donor"].includes(role)) {
+        const normalizedRole = role.trim().toLowerCase();
+
+        if (!["ngo", "company", "admin", "donor"].includes(normalizedRole)) {
             return res.status(400).json({ message: "Invalid role" });
         }
 
-        if (role === "Admin") {
+        if (normalizedRole === "admin") {
             return res.status(403).json({ message: "Admins can only be created by existing admins" });
         }
 
-        // 🔵 1️⃣ **Hash the Password before saving**
-        const saltRounds = 10; // Higher value = more secure but slower
+        // 🔵 **Hash the Password before saving**
+        const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
         console.log("🟢 Creating user with hashed password:", email);
@@ -69,7 +69,7 @@ router.post("/signup", async (req, res) => {
             fullName,
             email,
             phoneNumber,
-            password: hashedPassword, // ✅ Store hashed password
+            password: hashedPassword,
             role
         });
         await newUser.save();
@@ -78,24 +78,26 @@ router.post("/signup", async (req, res) => {
         let newCompany = null;
         let newNGO = null;
 
-        // 🔵 2️⃣ If Role is "Company", Create a Company Profile
-        if (role.trim().toLowerCase() === "company") {
-            console.log("🟢 Attempting to create company profile for:", email);
+        // 🔵 **Create Company Profile (if role is company)**
+        if (normalizedRole === "company") {
+            console.log("🟢 Creating company profile for:", email);
             try {
                 newCompany = await Company.create({
-                    userId: newUser._id,  // ✅ Now userId exists
+                    userId: newUser._id,
                     companyName: fullName,
                     companyEmail: email,
-                    registrationNumber: "Pending",
-                    companyAddress: "Not provided",
                     companyPhoneNumber: phoneNumber,
-                    ceoName: "Not provided",
-                    ceoContactNumber: "Not provided",
-                    ceoEmail: "Not provided",
-                    companyType: "IT",
-                    numberOfEmployees: 1,
-                    companyLogo: "",
-                });
+        
+                    // All optional fields are `null`
+                registrationNumber: null,
+                companyAddress: null,
+                ceoName: null,
+                ceoContactNumber: null,
+                ceoEmail: email,
+                companyType: null,
+                numberOfEmployees: null,
+                companyLogo: null
+                }); 
 
                 console.log("✅ Company profile created successfully:", newCompany);
             } catch (companyError) {
@@ -104,41 +106,48 @@ router.post("/signup", async (req, res) => {
             }
         }
 
-        // 🔵 3️⃣ If Role is "NGO", Create an NGO Profile
-        if (role.trim().toLowerCase() === "ngo") {
-            console.log("🟢 Attempting to create NGO profile for:", email);
-            try {
-                newNGO = await NGO.create({
-                    ngoName: fullName,
-                    registrationNumber: "Pending",
-                    registeredYear: new Date().getFullYear(),
-                    address: "Not provided",
-                    contactNumber: phoneNumber,
-                    email: email,
-                    website: "Not provided",
-                    authorizedPerson: {
-                        name: "Not provided",
-                        phone: "Not provided",
-                        email: "Not provided",
-                    },
-                    panNumber: "Not provided",
-                    tanNumber: "Not provided",
-                    gstNumber: "Not provided",
-                    numberOfEmployees: 1,
-                    ngoType: "Trust", // Default value
-                    is80GCertified: false,
-                    is12ACertified: false,
-                    bankDetails: {
-                        accountHolderName: "Not provided",
-                        accountNumber: "Not provided",
-                        ifscCode: "Not provided",
-                        bankName: "Not provided",
-                        branchName: "Not provided",
-                    },
-                    logo: "",
-                    isActive: true,
-                });
+        // 🔵 **Create NGO Profile (if role is ngo)**
+if (normalizedRole === "ngo") {
+    console.log("🟢 Creating NGO profile for:", email);
+    try {
+        newNGO = await NGO.create({
+            userId: newUser._id,
+            ngoName: fullName,
+            email: email,
+            contactNumber: phoneNumber,
 
+            // All optional fields are `null`
+            registrationNumber: null,
+            registeredYear: null,
+            address: null,
+            website: null,
+
+            authorizedPerson: {
+                name: null,
+                phone: null,
+                email: email
+            },
+
+            // ✅ Use `null` instead of "null"
+            panNumber: null,
+            tanNumber: null,
+            gstNumber: null,
+            numberOfEmployees: null,
+            ngoType: null,
+            is80GCertified: false,
+            is12ACertified: false,
+
+            bankDetails: {
+                accountHolderName: null,
+                accountNumber: null, // ✅ Fix this
+                ifscCode: null,
+                bankName: null,
+                branchName: null
+            },
+
+            logo: null,
+            isActive: true
+        });
                 console.log("✅ NGO profile created successfully:", newNGO);
             } catch (ngoError) {
                 console.error("❌ ERROR: Failed to create NGO:", ngoError.message);
@@ -153,11 +162,19 @@ router.post("/signup", async (req, res) => {
             ngo: newNGO
         });
 
+        // 🔵 **Log user login activity (Fixed `user._id` issue)**
+        const newActivity = new Activity({
+            userId: newUser._id, // ✅ Fixed
+            action: "User registered"
+        });
+        await newActivity.save();
+
     } catch (error) {
         console.error("❌ Error registering user:", error);
         res.status(500).json({ message: "Error registering user", error: error.message });
     }
 });
+
 
 // Login Route
 router.post("/login", async (req, res) => {
@@ -180,8 +197,12 @@ router.post("/login", async (req, res) => {
 
         const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
 
-        // Track activity (Login)
-        activityLogger('Login', `User logged in at ${new Date().toISOString()}`)(req, res, () => {});
+        // **Log user login activity**
+        const newActivity = new Activity({
+            userId: user._id,
+            action: "User logged in"
+        });
+        await newActivity.save();
 
         res.status(200).json({ message: "Login successful", token, user });
     } catch (error) {
@@ -212,6 +233,12 @@ router.get("/my-profile", authMiddleware(), async (req, res) => {
         }
 
         res.status(200).json({ message: "Profile retrieved successfully", entity });
+        // **Log user login activity**
+        const newActivity = new Activity({
+            userId: user._id,
+            action: "User fetched their profile"
+        });
+        await newActivity.save();
     } catch (error) {
         console.error("❌ Error fetching profile:", error);
         res.status(500).json({ message: "Error fetching profile", error: error.message });
@@ -282,6 +309,12 @@ router.put("/update-profile", authMiddleware(), upload.single("companyLogo"), as
         activityLogger('Profile Updated', `User updated their profile at ${new Date().toISOString()}`)(req, res, () => {});
 
         res.status(200).json({ message: `${role} profile updated successfully`, entity });
+        // **Log user login activity**
+        const newActivity = new Activity({
+            userId: user._id,
+            action: "User updated their profile"
+        });
+        await newActivity.save();
     } catch (error) {
         console.error("❌ Error updating profile:", error);
         res.status(500).json({ message: "Error updating profile", error: error.message });
@@ -422,11 +455,12 @@ router.post("/change-password", authMiddleware([]), async (req, res) => {  // Pa
     }
 });
 
-router.get('/activity', authMiddleware(['user', 'admin']), async (req, res) => {
+router.get('/activity', authMiddleware(["NGO", "Company", "Admin", "Donor"]), async (req, res) => {
     try {
+        console.log("User ID:", req.user.id);  // Debugging
         const activities = await Activity.find({ userId: req.user.id }).sort({ timestamp: -1 });
 
-        if (!activities) {
+        if (!activities.length) {
             return res.status(404).json({ message: 'No activities found for this user' });
         }
 
@@ -436,6 +470,7 @@ router.get('/activity', authMiddleware(['user', 'admin']), async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+
 
 
 // Logout Route (Authenticated)

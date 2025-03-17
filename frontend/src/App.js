@@ -5,9 +5,9 @@ import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
-import AdminDashboardPage from './pages/AdminDashboardPage';
-import NGODashboardPage from './pages/NGODashboardPage';
-import CompanyDashboardPage from './pages/CompanyDashboardPage';
+import AdminDashboardPage from './admin/AdminDashboardPage';
+import NGODashboardPage from './ngos/NGODashboardPage';
+import CompanyDashboardPage from './companies/CompanyDashboardPage';
 import CampaignPage from './pages/CampaignPage';
 
 function App() {

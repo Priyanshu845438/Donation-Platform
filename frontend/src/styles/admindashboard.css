@@ -1,0 +1,116 @@
+/* General Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f7fafc;
+  color: #333;
+}
+
+/* Sidebar Styles */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 250px;
+  background-color: #2d3748; /* Tailwind gray-800 */
+  color: white;
+  transition: width 0.3s ease; /* Smooth transition for resizing */
+  z-index: 100;
+}
+
+.sidebar.closed {
+  width: 80px; /* Collapsed sidebar width */
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.hamburger-icon {
+  font-size: 1.5rem;
+  color: white;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: transform 0.3s ease;
+}
+
+.hamburger-icon:hover {
+  transform: rotate(90deg);
+}
+
+.sidebar nav {
+  margin-top: 2rem;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.menu-item:hover {
+  background-color: #4a5568; /* Tailwind gray-700 */
+}
+
+.menu-item.active {
+  background-color: #4a5568; /* Tailwind gray-700 */
+}
+
+.menu-item .icon {
+  margin-right: 15px; /* Adds space between the icon and label */
+}
+
+/* Main Content Styles */
+.main-content {
+  margin-left: 250px; /* Default margin for sidebar width */
+  padding: 2.5rem;
+  background-color: #f7fafc;
+  flex: 1;
+  transition: margin-left 0.3s ease; /* Smooth transition for content resizing */
+}
+
+.main-content.expanded {
+  margin-left: 80px; /* Adjust when sidebar is collapsed */
+}
+
+/* Mobile & Tablet Styles */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 250px; /* Sidebar width for tablets */
+  }
+
+  .main-content {
+    margin-left: 250px; /* Adjust main content width for tablet */
+  }
+
+  .sidebar.closed {
+    width: 0; /* Remove sidebar width when closed */
+  }
+
+  .main-content {
+    margin-left: 0; /* Remove main content margin */
+  }
+}
+
+@media (max-width: 576px) {
+  .sidebar {
+    width: 200px; /* Sidebar width for mobile */
+  }
+
+  .main-content {
+    margin-left: 200px; /* Adjust main content width accordingly */
+  }
+}

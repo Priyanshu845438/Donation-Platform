@@ -1,102 +1,118 @@
 /* LoginPage.css */
-body {
-    font-family: 'Roboto', sans-serif;
-    background: linear-gradient(135deg, #f4f6f8 10%, #f0f0f0 90%);
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
-  
+.login-container {
+  width: 100%;
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 30px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+h2 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+label {
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  color: #555;
+}
+
+select,
+input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s ease-in-out;
+}
+
+select:focus,
+input:focus {
+  border-color: #007bff;
+  box-shadow: 0px 0px 5px rgba(0, 123, 255, 0.3);
+}
+
+button {
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #007bff;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+button:hover {
+  background: #dcdcdc;
+}
+
+.error {
+  color: red;
+  font-size: 14px;
+  margin-top: -10px;
+}
+
+.password-input-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.password-input-container input {
+  flex: 1;
+  padding-right: 35px; /* Space for the eye icon */
+}
+
+.eye-button {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: #333;
+}
+
+.eye-button:hover {
+  color: #555;
+}
+
+.login-footer {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.forgot-password,
+.signup-link {
+  color: #007bff;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.forgot-password:hover,
+.signup-link:hover {
+  text-decoration: underline;
+}
+
+
+@media (max-width: 480px) {
   .login-container {
-    max-width: 400px;
-    width: 100%;
-    padding: 40px;
-    background-color: #fff;
-    border-radius: 15px;
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-    transform-style: preserve-3d;
-    transition: transform 0.3s ease-in-out;
+      width: 90%;
+      padding: 20px;
   }
-  
-  .login-container:hover {
-    transform: rotateY(10deg) rotateX(10deg);
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
-  }
-  
-  .login-container h2 {
-    color: #333;
-    font-size: 2.2rem;
-    margin-bottom: 30px;
-    font-weight: bold;
-    letter-spacing: 1px;
-    text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1);
-  }
-  
-  .form-control {
-    margin-bottom: 20px;
-  }
-  
-  .select-dropdown,
-  .input-field {
-    width: 100%;
-    font-size: 1rem;
-    border-radius: 12px;
-    border: 1px solid #ccc;
-    background-color: #fff;
-    padding: 12px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease-in-out;
-  }
-  
-  .select-dropdown:focus,
-  .input-field:focus {
-    border-color: #3f51b5;
-    box-shadow: 0 8px 16px rgba(63, 81, 181, 0.4);
-  }
-  
-  button {
-    background-color: #3f51b5;
-    color: white;
-    padding: 14px 24px;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 1.1rem;
-    width: 100%;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease-in-out;
-    margin-top: 20px;
-  }
-  
-  button:hover {
-    background-color: #303f9f;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-  }
-  
-  button:active {
-    background-color: #1a237e;
-    transform: translateY(2px);
-  }
-  
-  .error-message {
-    color: red;
-    font-size: 1rem;
-    margin-top: 10px;
-  }
-  
-  @media (max-width: 768px) {
-    .login-container {
-      padding: 25px;
-    }
-  
-    .login-container h2 {
-      font-size: 1.8rem;
-    }
-  }
-  
+}

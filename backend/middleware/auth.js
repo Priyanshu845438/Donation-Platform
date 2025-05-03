@@ -1,36 +1,39 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/User"); // Ensure you have access to the User model
+const SECRET_KEY = process.env.JWT_SECRET || "Donation_Priyanshu"; // Use .env for security
 
-const JWT_SECRET = process.env.JWT_SECRET || "Donation_Priyanshu";
-
-const authMiddleware = (roles) => {
-    return (req, res, next) => {
-        console.log("Incoming Request Headers:", req.headers);
-
-        try {
-            const authHeader = req.header("Authorization");
-            console.log("Extracted Authorization Header:", authHeader);
-
-            if (!authHeader || !authHeader.startsWith("Bearer ")) {
-                return res.status(403).json({ success: false, message: "Access Denied. No token or invalid token format" });
-            }
-
-            const token = authHeader.split(" ")[1];
-            console.log("Extracted Token:", token);
-
-            const decoded = jwt.verify(token, JWT_SECRET);
-            console.log("Decoded Token Data:", decoded);
-
-            if (!roles.includes(decoded.role)) {
-                return res.status(403).json({ success: false, message: "Access Denied. Insufficient privileges" });
-            }
-
-            req.user = decoded;
-            next();
-        } catch (error) {
-            console.error("Token Verification Error:", error.message);
-            res.status(401).json({ success: false, message: "Invalid token", error: error.message });
+const authMiddleware = (allowedRoles) => async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({ success: false, message: "Access denied. No token provided." });
         }
-    };
+
+        // Extract the token
+        const token = authHeader.split(" ")[1];
+
+        // Decode the token
+        const decoded = jwt.verify(token, SECRET_KEY);
+        console.log("✅ Decoded Token:", decoded); // Debugging log
+
+        // Fetch user from DB to verify existence
+        const user = await User.findById(decoded.userId);
+        if (!user) {
+            return res.status(401).json({ success: false, message: "Invalid token. User not found." });
+        }
+
+        // Attach user data to req
+        req.user = {
+            id: user._id.toString(),
+            role: user.role
+        };
+
+        console.log("🔹 Authenticated User:", req.user); // Debugging log
+        next();
+    } catch (error) {
+        console.error("❌ Auth Middleware Error:", error);
+        return res.status(401).json({ success: false, message: "Invalid token." });
+    }
 };
 
 module.exports = authMiddleware;

@@ -2,6 +2,8 @@ const User = require("../models/User");
 const Company = require("../models/Company");
 const NGO = require("../models/NGO"); // ✅ Import NGO model
 const bcrypt = require("bcryptjs");
+const Company = require("../models/Campaign");
+
 
 exports.signup = async (req, res) => {
     const { fullName, email, phoneNumber, password, role } = req.body;
@@ -109,7 +111,6 @@ exports.signup = async (req, res) => {
             company: newCompany,
             ngo: newNGO,
         });
-
     } catch (error) {
         console.error("❌ Signup Error:", error);
         return res.status(500).json({ message: "Server Error", error: error.message });

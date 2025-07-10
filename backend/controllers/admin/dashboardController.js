@@ -294,42 +294,197 @@ exports.updateUserStatus = async (req, res) => {
 exports.updateCampaignStatus = async (req, res) => {
     try {
         const { campaignId } = req.params;
-        const { status } = req.body;
+        const { status, reason } = req.body;
 
-        const allowedStatuses = ['active', 'inactive', 'completed', 'suspended'];
-        if (!allowedStatuses.includes(status)) {
-            return res.status(400).json({
-                success: false,
-                message: `Status must be one of: ${allowedStatuses.join(', ')}`
+        // Handle different request types
+        if (req.method === 'DELETE') {
+            // Delete campaign
+            const campaign = await Campaign.findById(campaignId);
+            if (!campaign) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Campaign not found'
+                });
+            }
+
+            await Campaign.findByIdAndDelete(campaignId);
+            logger.info(`Campaign ${campaignId} deleted by admin`);
+
+            return res.status(200).json({
+                success: true,
+                message: 'Campaign deleted successfully'
             });
         }
 
-        const campaign = await Campaign.findByIdAndUpdate(
-            campaignId,
-            { status },
-            { new: true }
-        ).populate('createdBy', 'fullName email');
+        // Update campaign details or status
+        if (req.url.includes('/status')) {
+            const allowedStatuses = ['active', 'inactive', 'completed', 'suspended', 'pending', 'rejected'];
+            if (!allowedStatuses.includes(status)) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Status must be one of: ${allowedStatuses.join(', ')}`
+                });
+            }
 
-        if (!campaign) {
+            const campaign = await Campaign.findByIdAndUpdate(
+                campaignId,
+                { status, reason },
+                { new: true }
+            ).populate('createdBy', 'fullName email');
+
+            if (!campaign) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Campaign not found'
+                });
+            }
+
+            logger.info(`Campaign ${campaignId} status updated to ${status}`);
+
+            return res.status(200).json({
+                success: true,
+                message: `Campaign status updated to ${status}`,
+                data: campaign
+            });
+        } else {
+            // Update campaign details
+            const { title, description, goal } = req.body;
+            const updateData = {};
+            
+            if (title) updateData.title = title;
+            if (description) updateData.description = description;
+            if (goal) updateData.goalAmount = goal;
+
+            const campaign = await Campaign.findByIdAndUpdate(
+                campaignId,
+                updateData,
+                { new: true }
+            ).populate('createdBy', 'fullName email');
+
+            if (!campaign) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Campaign not found'
+                });
+            }
+
+            logger.info(`Campaign ${campaignId} updated by admin`);
+
+            return res.status(200).json({
+                success: true,
+                message: 'Campaign updated successfully',
+                data: campaign
+            });
+        }
+
+    } catch (error) {
+        logger.error("Error updating campaign:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to update campaign",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+/**
+ * Enhanced user management with individual user operations
+ */
+exports.getUserById = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        const user = await User.findById(userId).select('-password');
+        if (!user) {
             return res.status(404).json({
                 success: false,
-                message: 'Campaign not found'
+                message: 'User not found'
             });
         }
-
-        logger.info(`Campaign ${campaignId} status updated to ${status}`);
 
         res.status(200).json({
             success: true,
-            message: `Campaign status updated to ${status}`,
-            data: campaign
+            data: user
         });
 
     } catch (error) {
-        logger.error("Error updating campaign status:", error);
+        logger.error("Error fetching user:", error);
         res.status(500).json({
             success: false,
-            message: "Failed to update campaign status",
+            message: "Failed to fetch user",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+/**
+ * Update user profile
+ */
+exports.updateUserProfile = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { fullName, phoneNumber } = req.body;
+
+        const user = await User.findByIdAndUpdate(
+            userId,
+            { fullName, phoneNumber },
+            { new: true }
+        ).select('-password');
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        logger.info(`User ${userId} profile updated by admin`);
+
+        res.status(200).json({
+            success: true,
+            message: 'User profile updated successfully',
+            data: user
+        });
+
+    } catch (error) {
+        logger.error("Error updating user profile:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to update user profile",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+/**
+ * Delete user
+ */
+exports.deleteUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        await User.findByIdAndDelete(userId);
+
+        logger.info(`User ${userId} deleted by admin`);
+
+        res.status(200).json({
+            success: true,
+            message: 'User deleted successfully'
+        });
+
+    } catch (error) {
+        logger.error("Error deleting user:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to delete user",
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }

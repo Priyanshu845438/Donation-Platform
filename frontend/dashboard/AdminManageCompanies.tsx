@@ -1,9 +1,9 @@
-
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import StatusBadge from '../components/common/StatusBadge';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
 import { apiFetch } from '../utils/api';
+import { ADMIN_ENDPOINTS, buildQueryParams } from '../utils/adminEndpoints';
 import { User } from '../types';
 import { useToast } from '../components/ui/Toast';
 
@@ -42,8 +42,8 @@ const AdminManageCompanies: React.FC = () => {
     const fetchCompanies = useCallback(async () => {
         setIsLoading(true);
         try {
-            const params = new URLSearchParams({ role: 'company', limit: '100' });
-            const data = await apiFetch<{ users: User[] }>(`/admin/dashboard/users?${params.toString()}`);
+            const params = buildQueryParams({ role: 'company', limit: '100' });
+            const data = await apiFetch<{ users: User[] }>(`${ADMIN_ENDPOINTS.USERS.LIST}?${params}`);
             setCompanies(data.users || []);
         } catch (err: any) {
             setError(err.message || 'Failed to fetch companies');
@@ -67,18 +67,22 @@ const AdminManageCompanies: React.FC = () => {
     }, [filter, searchTerm, companies]);
 
     const handleViewDetails = (company: User) => {
+        if (!company || !company.id) {
+            addToast('Invalid company selected', 'error');
+            return;
+        }
         setSelectedCompany(company);
         setIsEditMode(false);
         setIsDetailModalOpen(true);
     };
-    
+
     const handleUpdateDetails = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedCompany) return;
         setIsSubmitting(true);
         try {
             const { fullName, phoneNumber } = selectedCompany;
-            await apiFetch(`/admin/dashboard/users/${selectedCompany.id}`, {
+            await apiFetch(ADMIN_ENDPOINTS.USERS.UPDATE_PROFILE(selectedCompany.id), {
                 method: 'PATCH',
                 body: { fullName, phoneNumber }
             });
@@ -94,10 +98,10 @@ const AdminManageCompanies: React.FC = () => {
 
     const handleStatusChange = async () => {
         if (!selectedCompany || !action) return;
-        
+
         try {
             const body = { isActive: action.type === 'activate', reason: action.reason || 'Admin action.' };
-            await apiFetch(`/admin/dashboard/users/${selectedCompany.id}/status`, { method: 'PATCH', body });
+            await apiFetch(ADMIN_ENDPOINTS.USERS.UPDATE_STATUS(selectedCompany.id), { method: 'PATCH', body });
             addToast(`Company ${action.type}d successfully.`, 'success');
             fetchCompanies();
              if(selectedCompany) {
@@ -110,7 +114,7 @@ const AdminManageCompanies: React.FC = () => {
             setAction(null);
         }
     };
-    
+
     const openConfirmationModal = (company: User, type: 'activate' | 'disable') => {
         setSelectedCompany(company);
         setAction({ type });
@@ -118,6 +122,10 @@ const AdminManageCompanies: React.FC = () => {
     }
 
     const openDeleteModal = (company: User) => {
+        if (!company || !company.id) {
+            addToast('Invalid company selected', 'error');
+            return;
+        }
         setCompanyToDelete(company);
         setIsDeleteModalOpen(true);
     };
@@ -125,7 +133,7 @@ const AdminManageCompanies: React.FC = () => {
     const handleDeleteCompany = async () => {
         if (!companyToDelete) return;
         try {
-            await apiFetch(`/admin/dashboard/users/${companyToDelete.id}`, { method: 'DELETE' });
+            await apiFetch(ADMIN_ENDPOINTS.USERS.DELETE(companyToDelete.id), { method: 'DELETE' });
             addToast('Company deleted successfully.', 'success');
             fetchCompanies();
         } catch (err: any) {
@@ -149,7 +157,7 @@ const AdminManageCompanies: React.FC = () => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            await apiFetch('/admin/dashboard/users', {
+            await apiFetch(ADMIN_ENDPOINTS.USERS.CREATE, {
                 method: 'POST',
                 body: { ...newCompanyData, role: 'company' }
             });
@@ -162,9 +170,9 @@ const AdminManageCompanies: React.FC = () => {
             setIsSubmitting(false);
         }
     };
-    
+
     const tableHeaders = ["Company Name", "Contact", "Status", "Actions"];
-    
+
     return (
         <div className="space-y-6">
             <div>
@@ -174,8 +182,8 @@ const AdminManageCompanies: React.FC = () => {
 
             <div className="bg-surface p-4 rounded-xl shadow-serene border border-border space-y-4 md:space-y-0 md:flex md:items-center md:justify-between gap-4">
                 <div className="flex items-center space-x-2 flex-wrap gap-2">
-                    {(['all', 'active', 'inactive'] as const).map(status => (
-                        <Button key={status} onClick={() => setFilter(status)} variant={filter === status ? 'primary' : 'outline'} size="sm" className="capitalize">{status}</Button>
+                    {(['all', 'active', 'inactive'] as const).map((status, index) => (
+                        <Button key={`filter-${status}-${index}`} onClick={() => setFilter(status)} variant={filter === status ? 'primary' : 'outline'} size="sm" className="capitalize">{status}</Button>
                     ))}
                 </div>
                 <div className="flex items-center gap-4">
@@ -271,7 +279,7 @@ const AdminManageCompanies: React.FC = () => {
                     </div>
                 )}
             </Modal>
-            
+
             <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Confirm Deletion">
                 {companyToDelete && (
                     <div className="space-y-4">
@@ -296,7 +304,7 @@ const AdminManageCompanies: React.FC = () => {
                     </div>
                     <div>
                         <label htmlFor="password" className="block text-sm font-medium text-text-secondary mb-1">Password</label>
-                        <input type="password" name="password" id="password" required value={newCompanyData.password} onChange={handleNewCompanyChange} className={inputStyles} />
+                        <input type="password" name="password" id="password" required value={newCompanyData.password} onChange={handleNewCompanyChange} className={inputStyles} autoComplete="new-password" />
                     </div>
                     <div>
                         <label htmlFor="phoneNumber" className="block text-sm font-medium text-text-secondary mb-1">Phone Number</label>

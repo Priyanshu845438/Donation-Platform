@@ -22,10 +22,10 @@ const campaignRoutes = require('./routes/campaignRoutes');
 const donationRoutes = require('./routes/donationRoutes');
 const companyRoutes = require('./routes/companyRoutes');
 const statsRoutes = require('./routes/statsRoutes');
-const protectedRoutes = require('./routes/protectedRoutes');
-const paymentRoutes = require('./routes/paymentRoutes');
-const adminRoutes = require('./routes/admin');
-const ngoRoutes = require('./routes/ngo');
+const adminDashboard = require('./routes/adminDashboard');
+const ngoDashboard = require('./routes/ngoDashboard');
+const paymentRoutes = require('./routes/payment');
+const protectedRoutes = require('./routes/protected');
 
 const app = express();
 
@@ -48,7 +48,10 @@ app.use(
   })
 );
 
-
+const PORT = 5000;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on http://0.0.0.0:${PORT}`);
+});
 // ✅ Dynamic and safe CORS config
 // ✅ FIX: Allow CORS before any security middleware like helmet
 const corsOptions = {
@@ -120,10 +123,10 @@ app.use('/api/campaigns', campaignRoutes);
 app.use('/api/donations', donationRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/stats', statsRoutes);
-app.use('/api/protected', protectedRoutes);
+app.use('/api/admin/dashboard', adminDashboard);
+app.use('/api/ngo', ngoDashboard);
 app.use('/api/payments', paymentRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/ngo', ngoRoutes);
+app.use('/api/protected', protectedRoutes);
 
 // Welcome page for browsers
 app.get('/', (req, res) => {
@@ -148,14 +151,14 @@ app.get('/', (req, res) => {
                     <p class="status">✅ Backend is running successfully!</p>
                     <p><strong>MongoDB:</strong> Connected on port 27017</p>
                     <p><strong>Express API:</strong> Running on port 5000</p>
-                    
+
                     <h2>🔗 API Endpoints</h2>
                     <div class="endpoint"><span class="method">GET</span> <a href="/health">/health</a> - Health check</div>
                     <div class="endpoint"><span class="method">GET</span> <a href="/api/campaigns">/api/campaigns</a> - Get campaigns</div>
                     <div class="endpoint"><span class="method">POST</span> /api/auth/login - User login</div>
                     <div class="endpoint"><span class="method">POST</span> /api/auth/register - User registration</div>
                     <div class="endpoint"><span class="method">GET</span> /api/admin/dashboard/analytics - Admin analytics (requires auth)</div>
-                    
+
                     <h2>⚠️ Important Note</h2>
                     <p>Make sure to access the API on <strong>port 5000</strong> (this page), not port 27017 (MongoDB).</p>
                     <p>For frontend development, connect to: <code>http://localhost:5000</code></p>

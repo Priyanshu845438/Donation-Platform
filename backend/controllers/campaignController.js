@@ -357,6 +357,70 @@ exports.deleteCampaign = async (req, res) => {
 };
 
 /**
+ * Get campaign statistics
+ */
+exports.getCampaignStats = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const campaign = await Campaign.findById(id);
+        if (!campaign) {
+            return res.status(404).json({
+                success: false,
+                message: 'Campaign not found'
+            });
+        }
+
+        // Get donation statistics
+        const donationStats = await Donation.aggregate([
+            { $match: { campaignId: campaign._id, status: 'completed' } },
+            {
+                $group: {
+                    _id: null,
+                    totalDonations: { $sum: '$amount' },
+                    donationCount: { $sum: 1 },
+                    avgDonation: { $avg: '$amount' }
+                }
+            }
+        ]);
+
+        const stats = {
+            campaign: {
+                id: campaign._id,
+                title: campaign.title,
+                goalAmount: campaign.goalAmount,
+                raisedAmount: campaign.raisedAmount,
+                status: campaign.status,
+                progress: ((campaign.raisedAmount / campaign.goalAmount) * 100).toFixed(2)
+            },
+            donations: {
+                total: donationStats[0]?.totalDonations || 0,
+                count: donationStats[0]?.donationCount || 0,
+                average: donationStats[0]?.avgDonation || 0
+            },
+            timeline: {
+                createdAt: campaign.createdAt,
+                endDate: campaign.endDate,
+                daysRemaining: campaign.endDate ? Math.max(0, Math.ceil((new Date(campaign.endDate) - new Date()) / (1000 * 60 * 60 * 24))) : null
+            }
+        };
+
+        res.status(200).json({
+            success: true,
+            data: stats
+        });
+
+    } catch (error) {
+        logger.error('Get campaign stats error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get campaign statistics',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+/**
  * Get user's campaigns
  */
 exports.getUserCampaigns = async (req, res) => {

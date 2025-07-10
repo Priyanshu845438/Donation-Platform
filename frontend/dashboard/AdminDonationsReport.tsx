@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import StatusBadge from '../components/common/StatusBadge';
 import Button from '../components/common/Button';
 import { apiFetch } from '../utils/api';
+import { ADMIN_ENDPOINTS } from '../utils/adminEndpoints';
 import { Donation } from '../types';
 import { useToast } from '../components/ui/Toast';
 
@@ -58,7 +59,7 @@ const AdminReports: React.FC = () => {
         const fetchDonations = async () => {
             setIsLoading(true);
             try {
-                const data = await apiFetch<{ donations: Donation[] }>('/admin/donations');
+                const data = await apiFetch<{ donations: Donation[] }>(ADMIN_ENDPOINTS.REPORTS.DONATIONS);
                 setDonations(data.donations || []);
             } catch (err: any) {
                 setError(err.message || 'Failed to fetch donations report.');

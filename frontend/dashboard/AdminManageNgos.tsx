@@ -4,6 +4,7 @@ import StatusBadge from '../components/common/StatusBadge';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
 import { apiFetch } from '../utils/api';
+import { ADMIN_ENDPOINTS, buildQueryParams } from '../utils/adminEndpoints';
 import { User } from '../types';
 import { useToast } from '../components/ui/Toast';
 
@@ -42,8 +43,8 @@ const AdminManageNgos: React.FC = () => {
     const fetchNgos = useCallback(async () => {
         setIsLoading(true);
         try {
-            const params = new URLSearchParams({ role: 'ngo', limit: '100' });
-            const data = await apiFetch<{ users: User[] }>(`/admin/dashboard/users?${params.toString()}`);
+            const params = buildQueryParams({ role: 'ngo', limit: '100' });
+            const data = await apiFetch<{ users: User[] }>(`${ADMIN_ENDPOINTS.USERS.LIST}?${params}`);
             setNgos(data.users || []);
         } catch (err: any) {
             setError(err.message || 'Failed to fetch NGOs');
@@ -77,7 +78,7 @@ const AdminManageNgos: React.FC = () => {
         setIsSubmitting(true);
         try {
             const { fullName, phoneNumber } = selectedNgo;
-            await apiFetch(`/admin/dashboard/users/${selectedNgo.id}`, {
+            await apiFetch(ADMIN_ENDPOINTS.USERS.UPDATE_PROFILE(selectedNgo.id), {
                 method: 'PATCH',
                 body: { fullName, phoneNumber }
             });
@@ -96,7 +97,7 @@ const AdminManageNgos: React.FC = () => {
         
         try {
             const body = { isActive: action.type === 'approve', reason: action.reason || 'Admin action.' };
-            await apiFetch(`/admin/dashboard/users/${selectedNgo.id}/status`, { method: 'PATCH', body });
+            await apiFetch(ADMIN_ENDPOINTS.USERS.UPDATE_STATUS(selectedNgo.id), { method: 'PATCH', body });
             addToast(`NGO ${action.type === 'approve' ? 'approved' : 'disabled'} successfully.`, 'success');
             fetchNgos();
             // Also update the selected NGO in the modal
@@ -125,7 +126,7 @@ const AdminManageNgos: React.FC = () => {
     const handleDeleteNgo = async () => {
         if (!ngoToDelete) return;
         try {
-            await apiFetch(`/admin/dashboard/users/${ngoToDelete.id}`, { method: 'DELETE' });
+            await apiFetch(ADMIN_ENDPOINTS.USERS.DELETE(ngoToDelete.id), { method: 'DELETE' });
             addToast('NGO deleted successfully.', 'success');
             fetchNgos();
         } catch (err: any) {
@@ -149,7 +150,7 @@ const AdminManageNgos: React.FC = () => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            await apiFetch('/admin/dashboard/users', {
+            await apiFetch(ADMIN_ENDPOINTS.USERS.CREATE, {
                 method: 'POST',
                 body: { ...newNgoData, role: 'ngo' }
             });

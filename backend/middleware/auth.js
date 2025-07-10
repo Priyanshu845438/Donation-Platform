@@ -10,7 +10,7 @@ const SECRET_KEY = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-t
 const authMiddleware = (allowedRoles = []) => async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
-        
+
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return res.status(401).json({
                 success: false,
@@ -26,7 +26,7 @@ const authMiddleware = (allowedRoles = []) => async (req, res, next) => {
 
         // Fetch user from database to ensure user still exists and is active
         const user = await User.findById(decoded.userId).select('-password');
-        
+
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -60,14 +60,14 @@ const authMiddleware = (allowedRoles = []) => async (req, res, next) => {
         next();
     } catch (error) {
         logger.error('Authentication error:', error);
-        
+
         if (error.name === 'JsonWebTokenError') {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid token.'
             });
         }
-        
+
         if (error.name === 'TokenExpiredError') {
             return res.status(401).json({
                 success: false,
@@ -88,7 +88,7 @@ const authMiddleware = (allowedRoles = []) => async (req, res, next) => {
 const optionalAuthMiddleware = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
-        
+
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return next();
         }
@@ -97,7 +97,7 @@ const optionalAuthMiddleware = async (req, res, next) => {
         const decoded = jwt.verify(token, SECRET_KEY);
 
         const user = await User.findById(decoded.userId).select('-password');
-        
+
         if (user && user.isActive) {
             req.user = {
                 id: user._id.toString(),

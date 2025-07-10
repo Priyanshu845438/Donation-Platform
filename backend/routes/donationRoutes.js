@@ -17,6 +17,8 @@ const {
 const { donationActivityLogger } = require('../middleware/activityLogger');
 const { donationLimiter } = require('../middleware/rateLimiter');
 
+const router = express.Router();
+
 // Create donation (can be done by anyone, authenticated or not)
 router.post('/',
     donationLimiter,
@@ -67,22 +69,5 @@ router.patch('/:id/status',
     validateObjectId('id'),
     updateDonationStatus
 );
-
-module.exports = router;
-const router = express.Router();
-const donationController = require('../controllers/donationController');
-const authMiddleware = require('../middleware/auth');
-
-// Get all donations (admin only)
-router.get('/', authMiddleware, donationController.getAllDonations);
-
-// Get donation by ID
-router.get('/:id', authMiddleware, donationController.getDonationById);
-
-// Create donation
-router.post('/', authMiddleware, donationController.createDonation);
-
-// Update donation status (admin/ngo only)
-router.patch('/:id/status', authMiddleware, donationController.updateDonationStatus);
 
 module.exports = router;

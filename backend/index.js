@@ -13,47 +13,37 @@ const connectDB = require('./config/database');
 // Import middleware
 const { errorHandler } = require('./middleware/errorHandler');
 const rateLimit = require('express-rate-limit');
-const rateLimiter = require('./middleware/rateLimiter');
 
-// Import routes
+// Routes
 const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
 const campaignRoutes = require('./routes/campaignRoutes');
 const donationRoutes = require('./routes/donationRoutes');
+const userRoutes = require('./routes/userRoutes');
 const companyRoutes = require('./routes/companyRoutes');
 const statsRoutes = require('./routes/statsRoutes');
-const adminDashboard = require('./routes/adminDashboard');
-const ngoDashboard = require('./routes/ngoDashboard');
 const paymentRoutes = require('./routes/payment');
-const protectedRoutes = require('./routes/protected');
+const ngoDashboardRoutes = require('./routes/ngoDashboard');
+const protectedRoutes = require('./routes/protectedRoutes');
+const adminRoutes = require('./routes/admin');
+const ngoRoutes = require('./routes/ngo');
+const companyRoutesAlt = require('./routes/company');
+const adminDashboardRoutes = require('./routes/adminDashboard');
+const donationAltRoutes = require('./routes/donation');
+const statsAltRoutes = require('./routes/stats');
+const authAltRoutes = require('./routes/auth');
+const protectedAltRoutes = require('./routes/protected');
 
 const app = express();
 
-// Helmet security
-// app.use(helmet({
-//     crossOriginEmbedderPolicy: false,
-//     contentSecurityPolicy: {
-//         directives: {
-//             defaultSrc: ["'self'"],
-//             styleSrc: ["'self'", "'unsafe-inline'"],
-//             scriptSrc: ["'self'"],
-//             imgSrc: ["'self'", "data:", "https:"],
-//         },
-//     },
-// }));
+// Helmet security with proper configuration
 app.use(
   helmet({
     crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: false, // ❗ disable CSP to prevent local frontend blocking
+    contentSecurityPolicy: false,
   })
 );
 
-const PORT = 5000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server is running on http://0.0.0.0:${PORT}`);
-});
-// ✅ Dynamic and safe CORS config
-// ✅ FIX: Allow CORS before any security middleware like helmet
+// CORS configuration
 const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = [
@@ -73,23 +63,19 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
-app.use(cors(corsOptions)); // ✅ Apply BEFORE anything else
-app.options('*', cors(corsOptions)); // ✅ Allow all OPTIONS preflight
-app.use((req, res, next) => {
-  console.log(`Request from ${req.headers.origin} → ${req.method} ${req.originalUrl}`);
-  next();
-});
 
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
+// Trust proxy for accurate IP detection
+app.set('trust proxy', 1);
 
-
-// 🔒 Rate Limiter (fixed trust proxy warning)
+// Rate Limiter
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
     standardHeaders: true,
     legacyHeaders: false,
-    trustProxy: false, // fixes trust proxy warning
 });
 app.use('/api/', limiter);
 
@@ -112,7 +98,7 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         environment: process.env.NODE_ENV,
-        version: process.env.npm_package_version || '1.0.0'
+        version: '1.0.0'
     });
 });
 
@@ -149,19 +135,13 @@ app.get('/', (req, res) => {
                 <div class="container">
                     <h1>🎯 Donation Platform API</h1>
                     <p class="status">✅ Backend is running successfully!</p>
-                    <p><strong>MongoDB:</strong> Connected on port 27017</p>
-                    <p><strong>Express API:</strong> Running on port 5000</p>
-
+                    <p><strong>MongoDB:</strong> Connected</p>
+                    <p><strong>Express API:</strong> Running on port ${process.env.PORT || 5000}</p>
                     <h2>🔗 API Endpoints</h2>
                     <div class="endpoint"><span class="method">GET</span> <a href="/health">/health</a> - Health check</div>
-                    <div class="endpoint"><span class="method">GET</span> <a href="/api/campaigns">/api/campaigns</a> - Get campaigns</div>
                     <div class="endpoint"><span class="method">POST</span> /api/auth/login - User login</div>
                     <div class="endpoint"><span class="method">POST</span> /api/auth/register - User registration</div>
-                    <div class="endpoint"><span class="method">GET</span> /api/admin/dashboard/analytics - Admin analytics (requires auth)</div>
-
-                    <h2>⚠️ Important Note</h2>
-                    <p>Make sure to access the API on <strong>port 5000</strong> (this page), not port 27017 (MongoDB).</p>
-                    <p>For frontend development, connect to: <code>http://localhost:5000</code></p>
+                    <div class="endpoint"><span class="method">GET</span> /api/campaigns - Get campaigns</div>
                 </div>
             </body>
             </html>
@@ -172,7 +152,6 @@ app.get('/', (req, res) => {
             version: '1.0.0',
             health: '/health',
             status: 'running',
-            mongodb: 'connected',
             port: process.env.PORT || 5000
         });
     }
@@ -190,32 +169,18 @@ app.use('*', (req, res) => {
 // Global error handler
 app.use(errorHandler);
 
-// MongoDB connection and server startup
-const startServer = async () => {
-    try {
-        await connectDB(); // from ./config/database.js
+// Initialize cron jobs
+const { startCronJobs } = require('./utils/cronJobs');
 
-        const PORT = process.env.PORT || 5000;
-        const server = app.listen(PORT, '0.0.0.0', () =>
-            logger.info(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`)
-        );
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    logger.info(`🚀 Server running on port ${PORT}`);
+    logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+    logger.info(`🔗 API URL: http://localhost:${PORT}`);
 
-        process.on('SIGTERM', () => {
-            logger.info('SIGTERM received, shutting down');
-            server.close(() => process.exit(0));
-        });
-
-        process.on('SIGINT', () => {
-            logger.info('SIGINT received, shutting down');
-            server.close(() => process.exit(0));
-        });
-
-    } catch (err) {
-        logger.error('❌ Failed to start server:', err);
-        process.exit(1);
-    }
-};
-
-startServer();
+    // Start cron jobs
+    startCronJobs();
+});
 
 module.exports = app;

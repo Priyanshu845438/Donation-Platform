@@ -1,4 +1,3 @@
-
 import React, { ReactNode } from 'react';
 
 interface ModalProps {
@@ -37,7 +36,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children, title, size = 
                         className="text-copy-muted hover:text-primary transition-colors p-1 rounded-full hover:bg-background"
                         aria-label="Close modal"
                     >
-                        <ion-icon name="close-outline" class="text-2xl"></ion-icon>
+                        <ion-icon name="close-outline" className="text-2xl"></ion-icon>
                     </button>
                 </div>
                 <div className="p-6 overflow-y-auto">

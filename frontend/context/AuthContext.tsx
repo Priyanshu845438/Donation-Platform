@@ -1,6 +1,7 @@
 
 import React, { createContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { User, AuthContextType, UserRole } from '../types';
+import { User, AuthContextType } from '../types';
+import { apiFetch } from '../utils/api';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -38,11 +39,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(newUser);
     };
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setToken(null);
-        setUser(null);
+    const logout = async () => {
+        try {
+            await apiFetch('/auth/logout', { method: 'POST' });
+        } catch (error) {
+            console.error('Logout API call failed, proceeding with client-side logout.', error);
+        } finally {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setToken(null);
+            setUser(null);
+        }
+    };
+    
+    const updateUser = (updatedData: Partial<User>) => {
+        if(user) {
+            const newUser = { ...user, ...updatedData };
+            setUser(newUser);
+            localStorage.setItem('user', JSON.stringify(newUser));
+        }
     };
 
     const authContextValue: AuthContextType = {
@@ -51,6 +66,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         token,
         login,
         logout,
+        updateUser,
         isLoading
     };
 

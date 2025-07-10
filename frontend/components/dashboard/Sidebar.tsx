@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../../hooks/useAuth';
 import { UserRole } from '../../types';
 
@@ -10,7 +11,7 @@ interface SidebarProps {
 }
 
 const getDashboardLinks = (role: UserRole) => {
-    const base = `/dashboard/${role.toLowerCase()}`;
+    const base = `/dashboard/${role}`;
     switch (role) {
         case UserRole.ADMIN:
             return [
@@ -18,15 +19,24 @@ const getDashboardLinks = (role: UserRole) => {
                 { name: 'NGOs', path: `${base}/ngos`, icon: 'people-outline' },
                 { name: 'Companies', path: `${base}/companies`, icon: 'business-outline' },
                 { name: 'Campaigns', path: `${base}/campaigns`, icon: 'megaphone-outline' },
-                { name: 'Donations', path: `${base}/donations`, icon: 'cash-outline' },
-                { name: 'Profile', path: `${base}/profile`, icon: 'person-circle-outline' },
+                { name: 'Reports', path: `${base}/reports`, icon: 'document-text-outline' },
             ];
         case UserRole.NGO:
-            return [{ name: 'Overview', path: base, icon: 'grid-outline' }, { name: 'My Campaigns', path: `${base}/my-campaigns`, icon: 'document-text-outline' }, { name: 'Reports', path: `${base}/reports`, icon: 'stats-chart-outline' }];
+            return [
+                { name: 'Dashboard', path: base, icon: 'grid-outline' }, 
+                { name: 'My Campaigns', path: `${base}/campaigns`, icon: 'megaphone-outline' }, // Example link
+                { name: 'NGO Profile', path: `${base}/organization-profile`, icon: 'library-outline' }, 
+            ];
         case UserRole.COMPANY:
-            return [{ name: 'Overview', path: base, icon: 'grid-outline' }, { name: 'Donations', path: `${base}/donations`, icon: 'gift-outline' }, { name: 'Partnerships', path: `${base}/partnerships`, icon: 'briefcase-outline' }];
-        case UserRole.DONOR:
-            return [{ name: 'Overview', path: base, icon: 'grid-outline' }, { name: 'Donation History', path: `${base}/history`, icon: 'receipt-outline' }, { name: 'Profile', path: `${base}/profile`, icon: 'person-circle-outline' }];
+            return [
+                { name: 'Dashboard', path: base, icon: 'grid-outline' }, 
+                { name: 'My Initiatives', path: `${base}/initiatives`, icon: 'bulb-outline' }, // Example link
+                { name: 'Company Profile', path: `${base}/organization-profile`, icon: 'briefcase-outline' },
+            ];
+        case UserRole.USER:
+            return [
+                { name: 'Dashboard', path: base, icon: 'grid-outline' }, 
+            ];
         default:
             return [];
     }
@@ -44,43 +54,64 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
     if (!user) return null;
 
     const links = getDashboardLinks(user.role);
+    const profileLink = { name: 'My Account', path: `/dashboard/${user.role}/profile`, icon: 'person-circle-outline' };
+
+    const activeClass = 'bg-primary/10 text-primary font-semibold';
+    const inactiveClass = 'hover:bg-gray-100 text-text-secondary hover:text-text-primary';
 
     return (
         <>
-            <div className={`fixed inset-0 bg-black bg-opacity-70 z-20 lg:hidden transition-opacity ${sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setSidebarOpen(false)}></div>
-            <div className={`fixed inset-y-0 left-0 w-64 bg-surface text-copy transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 transition-transform duration-200 ease-in-out z-30 flex flex-col`}>
+            <div className={`fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden transition-opacity ${sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setSidebarOpen(false)}></div>
+            <div className={`fixed inset-y-0 left-0 w-64 bg-surface text-text-primary transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out z-40 flex flex-col border-r border-border`}>
                 <div className="flex items-center justify-center h-20 border-b border-border">
-                    <NavLink to="/" className="text-2xl font-bold text-primary-light">CharityPlus</NavLink>
+                    <NavLink to="/" className="text-2xl font-bold font-display text-primary">CharityPlus</NavLink>
                 </div>
-                <nav className="flex-1 px-4 py-6 space-y-2">
+                <nav className="flex-1 px-4 py-6 space-y-1">
                     {links.map(link => (
                         <NavLink
                             to={link.path}
                             key={link.name}
-                            end={link.path.split('/').length <= 3} // for "Dashboard" and "Overview" links
+                            end
                             onClick={() => setSidebarOpen(false)}
                             className={({ isActive }) =>
-                                `flex items-center px-4 py-2.5 rounded-lg transition-colors duration-200 ${
-                                    isActive ? 'bg-primary text-white' : 'hover:bg-background'
+                                `flex items-center px-4 py-3 rounded-lg transition-colors duration-200 text-base font-medium ${
+                                    isActive ? activeClass : inactiveClass
                                 }`
                             }
                         >
-                            <ion-icon name={link.icon} className="text-xl mr-3"></ion-icon>
-                            <span className="font-medium">{link.name}</span>
+                            <ion-icon name={link.icon} className="text-xl mr-4"></ion-icon>
+                            <span>{link.name}</span>
                         </NavLink>
                     ))}
                 </nav>
                 <div className="px-4 py-6 border-t border-border">
-                    <div className="flex items-center mb-4">
-                        <img className="h-10 w-10 rounded-full object-cover" src={`https://i.pravatar.cc/150?u=${user.email}`} alt="User Avatar" />
-                        <div className="ml-3">
-                            <p className="text-sm font-medium text-copy">{user.fullName}</p>
-                            <p className="text-xs text-copy-muted">{user.role}</p>
+                    <NavLink
+                        to={profileLink.path}
+                        key={profileLink.name}
+                        end
+                        onClick={() => setSidebarOpen(false)}
+                        className={({ isActive }) =>
+                                `flex items-center px-4 py-3 rounded-lg transition-colors duration-200 text-base font-medium mb-2 ${
+                                    isActive ? activeClass : inactiveClass
+                                }`
+                            }
+                    >
+                         <ion-icon name={profileLink.icon} className="text-xl mr-4"></ion-icon>
+                        <span>{profileLink.name}</span>
+                    </NavLink>
+                    <div className="flex items-center my-4">
+                        <img 
+                            className="h-10 w-10 rounded-full object-cover border-2 border-primary/50" 
+                            src={user.profileImageUrl || `https://i.pravatar.cc/150?u=${user.email}`} 
+                            alt="User Avatar" />
+                        <div className="ml-3 overflow-hidden">
+                            <p className="text-sm font-semibold text-text-primary truncate">{user.fullName}</p>
+                            <p className="text-xs text-text-secondary capitalize">{user.role}</p>
                         </div>
                     </div>
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center justify-center px-4 py-2.5 rounded-lg text-copy bg-red-600/80 hover:bg-red-600 transition-colors"
+                        className="w-full flex items-center justify-center px-4 py-2.5 rounded-lg text-red-600 bg-red-500/10 hover:bg-red-500/20 transition-colors"
                     >
                         <ion-icon name="log-out-outline" className="text-xl mr-3"></ion-icon>
                         <span className="font-medium">Logout</span>

@@ -39,9 +39,9 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     const colorMap = {
-        success: 'from-green-500 to-green-600',
-        error: 'from-red-500 to-red-600',
-        info: 'from-blue-500 to-blue-600',
+        success: 'border-secondary text-secondary',
+        error: 'border-red-500 text-red-500',
+        info: 'border-blue-500 text-blue-500',
     };
 
     return (
@@ -51,13 +51,13 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 {toasts.map(toast => (
                     <div
                         key={toast.id}
-                        className={`flex items-center justify-between min-w-[320px] p-4 text-white rounded-lg shadow-lg bg-gradient-to-br animate-fade-in ${colorMap[toast.type]}`}
+                        className={`flex items-center justify-between min-w-[320px] p-4 text-text-primary rounded-lg shadow-lg bg-surface border-l-4 ${colorMap[toast.type]} animate-fade-in`}
                     >
                         <div className="flex items-center">
                             <span className="text-2xl mr-3">{iconMap[toast.type]}</span>
                             <span>{toast.message}</span>
                         </div>
-                        <button onClick={() => removeToast(toast.id)} className="ml-4 p-1 rounded-full hover:bg-white/20 transition-colors">
+                        <button onClick={() => removeToast(toast.id)} className="ml-4 p-1 rounded-full hover:bg-gray-100 transition-colors">
                             <ion-icon name="close-outline"></ion-icon>
                         </button>
                     </div>

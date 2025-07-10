@@ -2,17 +2,33 @@ const express = require("express");
 const User = require("../models/User");
 const NGO = require("../models/NGO");
 const Company = require("../models/Company");
-const authMiddleware = require("../middleware/auth");
+const Donor = require("../models/User"); // Import Donor model (using User model for donors)
+const { authMiddleware } = require("../middleware/auth");
 const bcrypt = require("bcryptjs");
 const path = require("path");
-const upload = require(path.join(__dirname, "../middleware/upload"));
+const { singleUpload } = require("../middleware/upload");
 
-
+// Import dashboard routes
+const dashboardRoutes = require("./admin/dashboard");
 
 const router = express.Router();
 
+// Mount dashboard routes
+router.use('/dashboard', dashboardRoutes);
+
+// Add analytics endpoint for compatibility
+router.get("/analytics", authMiddleware(["admin"]), async (req, res) => {
+    try {
+        // Import the dashboard controller
+        const { getAnalytics } = require("./admin/dashboard");
+        await getAnalytics(req, res);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching analytics", error: error.message });
+    }
+});
+
 // Admin Creates User
-router.post("/create-user", authMiddleware(["Admin"]), async (req, res) => {
+router.post("/create-user", authMiddleware(["admin"]), async (req, res) => {
     try {
         const { fullName, email, password, phoneNumber, role } = req.body;
 
@@ -76,7 +92,7 @@ router.post("/create-user", authMiddleware(["Admin"]), async (req, res) => {
 });
 
 // Edit Company Profile (Admin Only)
-router.put("/edit-company/:userId", authMiddleware(["Admin"]), upload.single("companyLogo"), async (req, res) => {
+router.put("/edit-company/:userId", authMiddleware(["admin"]), singleUpload("company", "companyLogo")[0], async (req, res) => {
     try {
         const { userId } = req.params;
         const updateFields = req.body;
@@ -122,7 +138,7 @@ router.put("/edit-company/:userId", authMiddleware(["Admin"]), upload.single("co
 });
 
 
-router.put("/edit-ngo/:id", authMiddleware(["Admin"]), async (req, res) => {
+router.put("/edit-ngo/:id", authMiddleware(["admin"]), async (req, res) => {
     try {
         const { id } = req.params;
         const updateFields = req.body;
@@ -177,7 +193,7 @@ router.put("/edit-ngo/:id", authMiddleware(["Admin"]), async (req, res) => {
 
 
 // ✅ Delete Company
-router.delete("/delete-company/:id", authMiddleware(["Admin"]), async (req, res) => {
+router.delete("/delete-company/:id", authMiddleware(["admin"]), async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -195,7 +211,7 @@ router.delete("/delete-company/:id", authMiddleware(["Admin"]), async (req, res)
 });
 
 // ✅ Delete NGO
-router.delete("/delete-ngo/:id", authMiddleware(["Admin"]), async (req, res) => {
+router.delete("/delete-ngo/:id", authMiddleware(["admin"]), async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -212,7 +228,7 @@ router.delete("/delete-ngo/:id", authMiddleware(["Admin"]), async (req, res) => 
 });
 
 // Get All Users (Admin Only)
-router.get("/users", authMiddleware(["Admin"]), async (req, res) => {
+router.get("/users", authMiddleware(["admin"]), async (req, res) => {
     try {
         const users = await User.find();
         res.status(200).json(users);
@@ -222,7 +238,7 @@ router.get("/users", authMiddleware(["Admin"]), async (req, res) => {
 });
 
 // ✅ Get All Companies
-router.get("/companies", authMiddleware(["Admin"]), async (req, res) => {
+router.get("/companies", authMiddleware(["admin"]), async (req, res) => {
     try {
         const companies = await Company.find();
         res.status(200).json(companies);
@@ -232,7 +248,7 @@ router.get("/companies", authMiddleware(["Admin"]), async (req, res) => {
 });
 
 // ✅ Get All NGOs
-router.get("/ngos", authMiddleware(["Admin"]), async (req, res) => {
+router.get("/ngos", authMiddleware(["admin"]), async (req, res) => {
     try {
         const ngos = await NGO.find();
         res.status(200).json(ngos);
@@ -241,13 +257,54 @@ router.get("/ngos", authMiddleware(["Admin"]), async (req, res) => {
     }
 });
 
-// ✅ Get All Donor
-router.get("/Donor", authMiddleware(["Admin"]), async (req, res) => {
+// NGO status update (Admin Only)
+router.patch("/ngos/:id/status", authMiddleware(["admin"]), async (req, res) => {
     try {
-        const donors = await Donor.find();
-        res.status(200).json(Donor);
+        const { id } = req.params;
+        const { status, reason } = req.body;
+
+        // Validate status
+        const validStatuses = ["active", "inactive", "rejected"];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ message: "Invalid status" });
+        }
+
+        // Update NGO status
+        const ngo = await NGO.findByIdAndUpdate(id, { approvalStatus: status, rejectionReason: reason }, { new: true });
+
+        if (!ngo) {
+            return res.status(404).json({ message: "NGO not found" });
+        }
+
+        res.status(200).json({ message: `NGO status updated to ${status}`, ngo });
     } catch (error) {
-        res.status(500).json({ message: "Error fetching Donor", error: error.message });
+        res.status(500).json({ message: "Error updating NGO status", error: error.message });
+    }
+});
+
+// View NGO Profile (Public)
+router.get("/ngos/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const ngo = await NGO.findById(id);
+
+        if (!ngo) {
+            return res.status(404).json({ message: "NGO not found" });
+        }
+
+        res.status(200).json(ngo);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching NGO profile", error: error.message });
+    }
+});
+
+// ✅ Get All Donors
+router.get("/donors", authMiddleware(["admin"]), async (req, res) => {
+    try {
+        const donors = await Donor.find({ role: "Donor" });
+        res.status(200).json(donors);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching donors", error: error.message });
     }
 });
 

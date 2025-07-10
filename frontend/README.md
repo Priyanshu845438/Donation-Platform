@@ -1,18 +1,16 @@
 
-# CharityPlus - Modern Donation Platform Frontend
+# CharityPlus - Serenity Edition | Professional Donation Platform
 
-This is the frontend for CharityPlus, a modern donation platform built with React, TypeScript, and Tailwind CSS.
+This is the frontend for CharityPlus, a modern donation platform. This "Serenity" edition features a complete UI/UX overhaul, focusing on a clean, professional, and trustworthy user experience suitable for the non-profit sector.
 
-## Features
+## Serenity Theme Features
 
--   **Modern UI/UX**: Clean, responsive, and interactive design.
--   **Role-Based Access Control**: Separate dashboards for Admins, NGOs, Companies, and Donors.
--   **Dynamic Pages**: Home, About, Campaigns, Gallery, Reports, and Contact pages.
--   **Authentication**: Secure login and signup functionality using JWT.
--   **Component-Based Architecture**: Reusable and scalable components.
--   **Context API**: Global state management for authentication.
--   **Protected Routes**: Secure access to user-specific dashboards.
--   **Toast Notifications**: User-friendly feedback for actions.
+-   **Professional & Clean UI**: A light, airy design with a calming color palette of blues, teals, and soft grays to inspire trust and confidence.
+-   **User-Friendly & Accessible**: Focus on readability with high-contrast text, ample whitespace, and intuitive layouts. All components are designed to be simple and easy to use.
+-   **Responsive Design**: Meticulously crafted to provide a seamless experience on all devices, from mobile phones to large desktops.
+-   **Role-Tailored Dashboards**: Clean, data-focused dashboards for Admins, NGOs, Companies, and Donors.
+-   **Dynamic & Live Data**: All dashboards and campaign pages are powered by live API data, providing a real-time view of the platform's activity.
+-   **Robust Functionality**: Secure authentication (Login/Signup), profile management with image uploads, campaign creation/management, and admin moderation tools are all fully functional within the new design.
 
 ## Tech Stack
 
@@ -20,8 +18,9 @@ This is the frontend for CharityPlus, a modern donation platform built with Reac
 -   **TypeScript**: For type safety.
 -   **Vite**: As the development server and build tool (assumed environment).
 -   **React Router (HashRouter)**: For client-side routing.
--   **Tailwind CSS**: For utility-first styling.
--   **Recharts**: For data visualization on the reports page.
+-   **Tailwind CSS**: For utility-first styling with a custom "Serenity" theme configuration.
+-   **Recharts**: For data visualization.
+-   **Context API**: For global state management for authentication.
 
 ---
 
@@ -41,10 +40,7 @@ This project is designed to be run in a modern JavaScript development environmen
     npm install
     ```
 
-3.  **Set up environment variables:**
-    The application expects the backend API key to be available via `process.env.API_KEY` for any potential AI features, though it's not used in the core donation platform logic. The backend URL is hardcoded for simplicity but can be moved to an environment variable.
-
-4.  **Run the development server:**
+3.  **Run the development server:**
     ```bash
     npm run dev
     ```
@@ -54,13 +50,13 @@ This project is designed to be run in a modern JavaScript development environmen
 
 ## Backend Configuration (Required)
 
-This frontend is designed to work with a specific backend API. You need to have a backend server running that exposes the following endpoints.
+This frontend is designed to work with a specific backend API. You need to have a backend server running that exposes the API endpoints as documented in the Postman collection.
 
 **Base URL:** `http://localhost:5000/api`
 
-### CORS Configuration (Important!)
+### CORS Configuration (Crucial!)
 
-Because the frontend (e.g., from `http://localhost:5173`) and backend (from `http://localhost:5000`) run on different ports, you **must** enable Cross-Origin Resource Sharing (CORS) on your backend server. Otherwise, the browser will block all API requests for security reasons, resulting in a "Failed to fetch" error.
+Because the frontend (e.g., from `http://localhost:5173`) and backend (from `http://localhost:5000`) run on different origins, you **must** enable Cross-Origin Resource Sharing (CORS) on your backend server. Otherwise, the browser will block all API requests for security reasons, resulting in a "Failed to fetch" error.
 
 If you are using **Express.js** for your backend, you can do this easily with the `cors` middleware:
 
@@ -75,17 +71,17 @@ If you are using **Express.js** for your backend, you can do this easily with th
     const cors = require('cors');
     const app = express();
 
-    // Option 1: Enable CORS for all origins (simple, for development)
-    app.use(cors());
-    
-    // Option 2: For more security, allow only your frontend's origin
-    /*
+    // IMPORTANT: For security, be specific about the origin in production.
+    // For local development, you can allow your local frontend's origin.
     const corsOptions = {
       origin: 'http://localhost:5173' // Your frontend's actual URL
     };
     app.use(cors(corsOptions));
-    */
 
+    // For a quick-and-dirty development setup, you can allow all origins,
+    // but do not use this in production.
+    // app.use(cors());
+    
     // ... rest of your server setup (routes, middleware, etc.) ...
     
     // Example: app.use('/api/auth', authRoutes);
@@ -94,53 +90,12 @@ If you are using **Express.js** for your backend, you can do this easily with th
       console.log('Server is running on port 5000');
     });
     ```
+### API Endpoints
 
-### Auth Endpoints
-
-1.  **Signup:**
-    -   **URL:** `POST /auth/signup`
-    -   **Body (JSON):**
-        ```json
-        {
-          "fullName": "John Doe",
-          "email": "john.doe@example.com",
-          "phoneNumber": "1234567890",
-          "password": "yourpassword",
-          "role": "Donor" // Can be 'Donor', 'NGO', 'Company'
-        }
-        ```
-    -   **Success Response (201):**
-        ```json
-        {
-          "message": "User registered successfully"
-        }
-        ```
-
-2.  **Login:**
-    -   **URL:** `POST /auth/login`
-    -   **Body (JSON):**
-        ```json
-        {
-          "email": "john.doe@example.com",
-          "password": "yourpassword",
-          "role": "Donor" // Can be 'Donor', 'NGO', 'Company', 'Admin'
-        }
-        ```
-    -   **Success Response (200):**
-        ```json
-        {
-          "token": "your_jwt_token",
-          "user": {
-            "id": "user_id",
-            "fullName": "John Doe",
-            "email": "john.doe@example.com",
-            "role": "Donor"
-          }
-        }
-        ```
-
-### Notes
-
--   The backend should handle JWT creation, validation, and user management.
--   The `role` field is crucial for redirecting users to the correct dashboard upon login.
--   For a production build, run `npm run build` and serve the contents of the `dist` folder.
+The frontend is built according to the provided Postman collection, including endpoints for:
+- Authentication (`/auth/register`, `/auth/login`, etc.)
+- Campaign Management (`/campaigns`, `/campaigns/my-campaigns`, etc.)
+- Donation Management (`/donations`, etc.)
+- User, NGO, and Company Profile Management (`/auth/profile`, `/ngo/profile`, etc.)
+- File Uploads (`/auth/upload-profile-image`, etc.)
+- Admin Dashboard functionality (`/admin/dashboard/...`)

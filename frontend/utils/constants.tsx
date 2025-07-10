@@ -1,5 +1,5 @@
+
 import React from 'react';
-import { Campaign } from '../types';
 
 export const API_BASE_URL = 'http://localhost:5000/api';
 
@@ -10,13 +10,6 @@ export const NAV_LINKS = [
     { name: 'Gallery', path: '/gallery' },
     { name: 'Reports', path: '/reports' },
     { name: 'Contact', path: '/contact' },
-];
-
-export const MOCK_CAMPAIGNS: Campaign[] = [
-    { id: '1', title: 'Education for All', description: 'Providing books and supplies for underprivileged children.', imageUrl: 'https://picsum.photos/seed/education/600/400', goal: 10000, raised: 7500 },
-    { id: '2', title: 'Clean Water Initiative', description: 'Building wells in remote villages to provide access to clean drinking water.', imageUrl: 'https://picsum.photos/seed/water/600/400', goal: 15000, raised: 12300 },
-    { id: '3', title: 'Healthcare Support', description: 'Funding mobile clinics to offer medical care in rural areas.', imageUrl: 'https://picsum.photos/seed/health/600/400', goal: 20000, raised: 9800 },
-    { id: '4', title: 'Animal Shelter Aid', description: 'Support our local animal shelter with food, and medical supplies.', imageUrl: 'https://picsum.photos/seed/animals/600/400', goal: 5000, raised: 4500 },
 ];
 
 export const MOCK_TESTIMONIALS = [

@@ -1,0 +1,1023 @@
+{
+  "info": {
+    "name": "Donation Platform API",
+    "description": "Complete API collection for the Donation Platform with detailed role-based access documentation",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication Endpoints",
+      "description": "Public authentication endpoints - No role restrictions for registration and login",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phoneNumber\": \"9999999999\",\n  \"password\": \"Password123!\",\n  \"role\": \"user\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "PUBLIC ACCESS - Register new user\n\nSupported Roles:\n- user: Regular user who can donate\n- company: Corporate entity that can create CSR campaigns\n- ngo: Non-profit organization that can create fundraising campaigns\n- admin: Platform administrator (only in development mode)\n\nValidation:\n- Email must be unique and valid format\n- Password must be 8+ chars with uppercase, lowercase, number, and special character\n- Phone number must be 10-15 digits\n- Creates role-specific profile automatically"
+          }
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "PUBLIC ACCESS - User login\n\nAccepts any registered user regardless of role\nReturns JWT token for subsequent authenticated requests\nToken expires in 24 hours (configurable)\nUpdates lastLogin timestamp"
+          }
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "profile"]
+            },
+            "description": "AUTHENTICATED ACCESS - All roles can access their own profile\n\nRoles that can access:\n- user: Gets basic user profile\n- company: Gets user profile + company details\n- ngo: Gets user profile + NGO details\n- admin: Gets user profile (no additional profile data)\n\nReturns sanitized user data (excludes password)"
+          }
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Smith\",\n  \"phoneNumber\": \"9999999998\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "profile"]
+            },
+            "description": "AUTHENTICATED ACCESS - All roles can update their basic profile\n\nRoles that can access:\n- user, company, ngo, admin: Can update fullName, phoneNumber\n\nRestricted fields (cannot be updated):\n- email, password, role, createdAt, updatedAt\n\nNote: Role-specific profile updates use separate endpoints"
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Password123!\",\n  \"newPassword\": \"NewPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "change-password"]
+            },
+            "description": "AUTHENTICATED ACCESS - All roles can change their password\n\nRoles that can access:\n- user, company, ngo, admin: All authenticated users\n\nSecurity features:\n- Verifies current password before change\n- New password must meet complexity requirements\n- Password is hashed with bcrypt (12 salt rounds)"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "AUTHENTICATED ACCESS - All roles can logout\n\nRoles that can access:\n- user, company, ngo, admin: All authenticated users\n\nUpdates lastLogout timestamp\nNote: JWT tokens are stateless, so client must discard token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Campaign Management",
+      "description": "Campaign-related endpoints with role-based restrictions",
+      "item": [
+        {
+          "name": "Get All Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns?page=1&limit=10&category=education&status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page (max 100)"
+                },
+                {
+                  "key": "category",
+                  "value": "education",
+                  "description": "Filter by category"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by status"
+                }
+              ]
+            },
+            "description": "PUBLIC ACCESS - Anyone can view active campaigns\n\nNo authentication required\nReturns only active campaigns for public viewing\nSupports pagination and filtering\nCategories: education, healthcare, environment, poverty, disaster-relief, animal-welfare, other"
+          }
+        },
+        {
+          "name": "Get Campaign by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns", "{{campaignId}}"]
+            },
+            "description": "PUBLIC ACCESS - Anyone can view campaign details\n\nNo authentication required\nReturns detailed campaign information\nIncludes donation statistics and recent donations\nShows campaign creator information"
+          }
+        },
+        {
+          "name": "Create Campaign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Help Children Get Quality Education\",\n  \"description\": \"This campaign aims to provide quality education resources to underprivileged children in rural areas. We need your support to buy books, stationery, and other educational materials.\",\n  \"goalAmount\": 50000,\n  \"category\": \"education\",\n  \"endDate\": \"2025-12-31T23:59:59.000Z\",\n  \"tags\": [\"education\", \"children\", \"rural\"],\n  \"location\": \"Rural Maharashtra, India\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns"]
+            },
+            "description": "RESTRICTED ACCESS - Only company and ngo roles can create campaigns\n\nRoles that can access:\n- company: Can create CSR campaigns\n- ngo: Can create fundraising campaigns\n\nRoles that CANNOT access:\n- user: Cannot create campaigns (can only donate)\n- admin: Cannot create campaigns (admin functions only)\n\nValidation:\n- Title: 10-200 characters\n- Description: 50-5000 characters\n- Goal amount: Must be positive number\n- End date: Must be in future\n- Category: Must be valid category"
+          }
+        },
+        {
+          "name": "Update Campaign",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Campaign Title\",\n  \"description\": \"Updated description with more details about the campaign objectives and goals.\",\n  \"goalAmount\": 75000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns", "{{campaignId}}"]
+            },
+            "description": "OWNER ACCESS - Only campaign creator can update their campaigns\n\nRoles that can access:\n- company: Can update their own campaigns only\n- ngo: Can update their own campaigns only\n\nRoles that CANNOT access:\n- user: Cannot update campaigns\n- admin: Cannot update campaigns (use admin dashboard)\n\nOwnership validation:\n- User must be the creator of the campaign\n- Cannot update campaigns of other users"
+          }
+        },
+        {
+          "name": "Delete Campaign",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns", "{{campaignId}}"]
+            },
+            "description": "OWNER ACCESS - Only campaign creator can delete their campaigns\n\nRoles that can access:\n- company: Can delete their own campaigns only\n- ngo: Can delete their own campaigns only\n\nRoles that CANNOT access:\n- user: Cannot delete campaigns\n- admin: Cannot delete campaigns (use admin dashboard)\n\nRestrictions:\n- Cannot delete campaigns with existing donations\n- Soft delete (marks as deleted, doesn't remove from database)"
+          }
+        },
+        {
+          "name": "Get User's Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns/my-campaigns?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns", "my-campaigns"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "CREATOR ACCESS - Only campaign creators can view their campaigns\n\nRoles that can access:\n- company: Views all campaigns created by the company\n- ngo: Views all campaigns created by the NGO\n\nRoles that CANNOT access:\n- user: No campaigns to view (users can only donate)\n- admin: Use admin dashboard for campaign management\n\nShows all campaign statuses including draft, active, paused, completed"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Donation Management",
+      "description": "Donation-related endpoints with role-based access",
+      "item": [
+        {
+          "name": "Create Donation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campaignId\": \"60f7b1b3b3f1b3001f7b1b3b\",\n  \"amount\": 1000,\n  \"donorName\": \"Anonymous Donor\",\n  \"donorEmail\": \"donor@example.com\",\n  \"donorPhone\": \"9999999999\",\n  \"message\": \"Great cause! Happy to contribute.\",\n  \"paymentMethod\": \"upi\",\n  \"isAnonymous\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/donations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "donations"]
+            },
+            "description": "PUBLIC ACCESS - Anyone can donate (with or without registration)\n\nNo authentication required for donations\nSupports both registered and guest donations\n\nPayment Methods:\n- credit_card, debit_card, upi, net_banking, wallet\n\nAnonymous donations supported\nCreates pending donation record (completed after payment verification)\nSends confirmation email to donor"
+          }
+        },
+        {
+          "name": "Get Donation Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/donations/{{donationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "donations", "{{donationId}}"]
+            },
+            "description": "PUBLIC ACCESS - Anyone can view donation details\n\nNo authentication required\nReturns donation information and status\nUseful for payment confirmation and receipts\nAnonymous donations show limited information"
+          }
+        },
+        {
+          "name": "Get User Donations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/donations/my-donations?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "donations", "my-donations"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "AUTHENTICATED ACCESS - Users can view their donation history\n\nRoles that can access:\n- user: Views their donation history\n- company: Views company's donation history\n- ngo: Views NGO's donation history\n- admin: Views admin's personal donations (not all platform donations)\n\nIncludes donation receipts and tax certificates\nShows payment status and transaction details"
+          }
+        },
+        {
+          "name": "Get Campaign Donations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/donations/campaign/{{campaignId}}?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "donations", "campaign", "{{campaignId}}"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "CAMPAIGN OWNER ACCESS - Only campaign creators can view donations to their campaigns\n\nRoles that can access:\n- company: Can view donations to their campaigns\n- ngo: Can view donations to their campaigns\n\nRoles that CANNOT access:\n- user: Cannot view campaign donations (not campaign creators)\n- admin: Use admin dashboard for comprehensive donation view\n\nIncludes donor details and donation analytics\nUseful for generating donor reports and thank you communications"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Company Profile Management",
+      "description": "Company-specific profile endpoints",
+      "item": [
+        {
+          "name": "Get Company Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "company", "profile"]
+            },
+            "description": "COMPANY ROLE ONLY - Only users with company role can access\n\nRoles that can access:\n- company: Views their company profile details\n\nRoles that CANNOT access:\n- user, ngo, admin: Access denied\n\nReturns complete company information:\n- Basic details, registration info, contact details\n- CEO information, company type, employee count\n- CSR activities and campaign statistics"
+          }
+        },
+        {
+          "name": "Update Company Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Updated Company Name\",\n  \"companyAddress\": \"New Address, City, State\",\n  \"ceoName\": \"New CEO Name\",\n  \"ceoContactNumber\": \"9999999999\",\n  \"companyType\": \"IT\",\n  \"numberOfEmployees\": 500,\n  \"website\": \"https://company.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/company/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "company", "profile"]
+            },
+            "description": "COMPANY ROLE ONLY - Only companies can update their profile\n\nRoles that can access:\n- company: Can update their company profile\n\nRoles that CANNOT access:\n- user, ngo, admin: Access denied\n\nUpdatable fields:\n- Company details, contact information\n- CEO details, company type, employee count\n- Website and business information\n\nValidation applied for business-specific fields"
+          }
+        },
+        {
+          "name": "Upload Company Logo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "companyLogo",
+                  "type": "file",
+                  "description": "Company logo image file"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/company/upload-logo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "company", "upload-logo"]
+            },
+            "description": "COMPANY ROLE ONLY - Only companies can upload their logo\n\nRoles that can access:\n- company: Can upload/update company logo\n\nRoles that CANNOT access:\n- user, ngo, admin: Access denied\n\nFile restrictions:\n- Max size: 5MB\n- Allowed formats: JPG, PNG, GIF, WebP\n- Secure filename generation\n- Automatic image optimization recommended"
+          }
+        }
+      ]
+    },
+
+
+    // pending from here
+    {
+      "name": "NGO Profile Management",
+      "description": "NGO-specific profile endpoints",
+      "item": [
+        {
+          "name": "Get NGO Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ngo/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ngo", "profile"]
+            },
+            "description": "NGO ROLE ONLY - Only users with NGO role can access\n\nRoles that can access:\n- ngo: Views their NGO profile details\n\nRoles that CANNOT access:\n- user, company, admin: Access denied\n\nReturns complete NGO information:\n- Registration details, contact information\n- Authorized person details, certifications\n- Bank details, working areas, beneficiaries\n- Tax exemption status (80G, 12A, FCRA)"
+          }
+        },
+        {
+          "name": "Update NGO Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ngoName\": \"Updated NGO Name\",\n  \"address\": {\n    \"street\": \"123 NGO Street\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"postalCode\": \"400001\",\n    \"country\": \"India\"\n  },\n  \"authorizedPerson\": {\n    \"name\": \"John Doe\",\n    \"phone\": \"9999999999\",\n    \"email\": \"john@ngo.org\",\n    \"designation\": \"Director\"\n  },\n  \"workingAreas\": [\"education\", \"healthcare\"],\n  \"targetBeneficiaries\": [\"children\", \"women\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ngo/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ngo", "profile"]
+            },
+            "description": "NGO ROLE ONLY - Only NGOs can update their profile\n\nRoles that can access:\n- ngo: Can update their NGO profile\n\nRoles that CANNOT access:\n- user, company, admin: Access denied\n\nUpdatable fields:\n- NGO details, address, contact information\n- Authorized person details\n- Working areas and target beneficiaries\n- Certification status and bank details\n\nValidation for NGO-specific requirements"
+          }
+        },
+        {
+          "name": "Upload NGO Documents",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "registrationCertificate",
+                  "type": "file",
+                  "description": "NGO registration certificate"
+                },
+                {
+                  "key": "panCard",
+                  "type": "file",
+                  "description": "PAN card document"
+                },
+                {
+                  "key": "80gCertificate",
+                  "type": "file",
+                  "description": "80G tax exemption certificate"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ngo/upload-documents",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ngo", "upload-documents"]
+            },
+            "description": "NGO ROLE ONLY - Only NGOs can upload verification documents\n\nRoles that can access:\n- ngo: Can upload legal and certification documents\n\nRoles that CANNOT access:\n- user, company, admin: Access denied\n\nDocument types:\n- Registration certificate, PAN card\n- 80G, 12A, FCRA certificates\n- Audit reports, annual reports\n\nFile restrictions:\n- Max size: 5MB per file\n- Allowed formats: PDF, JPG, PNG, DOC, DOCX\n- Secure storage and verification workflow"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Dashboard",
+      "description": "Administrative endpoints - ADMIN ROLE ONLY",
+      "item": [
+        {
+          "name": "Admin Dashboard Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/dashboard/analytics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "dashboard", "analytics"]
+            },
+            "description": "ADMIN ROLE ONLY - Platform-wide analytics and statistics\n\nRoles that can access:\n- admin: Full platform analytics access\n\nRoles that CANNOT access:\n- user, company, ngo: Access denied (403 Forbidden)\n\nProvides comprehensive platform metrics:\n- User registration trends and statistics\n- Campaign performance analytics\n- Donation volume and revenue analysis\n- Platform health and activity metrics\n- Geographic distribution of users and campaigns"
+          }
+        },
+        {
+          "name": "Get All Users (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/dashboard/users?page=1&limit=10&role=all&status=all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "dashboard", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Users per page"
+                },
+                {
+                  "key": "role",
+                  "value": "all",
+                  "description": "Filter by role: user, company, ngo, admin"
+                },
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "Filter by status: active, inactive"
+                }
+              ]
+            },
+            "description": "ADMIN ROLE ONLY - View all platform users with filtering\n\nRoles that can access:\n- admin: Can view all users across all roles\n\nRoles that CANNOT access:\n- user, company, ngo: Access denied\n\nFeatures:\n- Pagination and filtering by role/status\n- User activity and registration analytics\n- Account status management capabilities\n- Detailed user profile information\n- Registration and login activity tracking"
+          }
+        },
+        {
+          "name": "Update User Status (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false,\n  \"reason\": \"Policy violation - spam campaigns\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/dashboard/users/{{userId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "dashboard", "users", "{{userId}}", "status"]
+            },
+            "description": "ADMIN ROLE ONLY - Activate or deactivate user accounts\n\nRoles that can access:\n- admin: Can modify any user's account status\n\nRoles that CANNOT access:\n- user, company, ngo: Access denied\n\nActions available:\n- Activate/deactivate user accounts\n- Suspend accounts for policy violations\n- Record reason for status changes\n- Audit trail for administrative actions\n\nNote: Deactivated users cannot login or perform platform actions"
+          }
+        },
+        {
+          "name": "Get All Campaigns (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/dashboard/campaigns?page=1&limit=10&status=all&category=all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "dashboard", "campaigns"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "Filter by status: active, completed, cancelled, etc."
+                },
+                {
+                  "key": "category",
+                  "value": "all",
+                  "description": "Filter by category"
+                }
+              ]
+            },
+            "description": "ADMIN ROLE ONLY - View all platform campaigns with comprehensive filtering\n\nRoles that can access:\n- admin: Can view all campaigns regardless of creator\n\nRoles that CANNOT access:\n- user, company, ngo: Access denied\n\nFeatures:\n- View campaigns from all creators (companies and NGOs)\n- Filter by status, category, date range\n- Campaign performance metrics\n- Donation analytics per campaign\n- Creator information and verification status"
+          }
+        },
+        {
+          "name": "Update Campaign Status (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"suspended\",\n  \"reason\": \"Content policy violation - misleading information\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/dashboard/campaigns/{{campaignId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "dashboard", "campaigns", "{{campaignId}}", "status"]
+            },
+            "description": "ADMIN ROLE ONLY - Moderate campaign status and content\n\nRoles that can access:\n- admin: Can modify any campaign's status\n\nRoles that CANNOT access:\n- user, company, ngo: Access denied\n\nActions available:\n- Approve/reject campaigns\n- Suspend campaigns for policy violations\n- Mark campaigns as featured\n- Change campaign status (active, paused, cancelled)\n- Record moderation reasons and audit trail"
+          }
+        },
+        {
+          "name": "Platform Statistics (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/dashboard/stats?period=30d",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "dashboard", "stats"],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "30d",
+                  "description": "Time period: 7d, 30d, 90d, 1y"
+                }
+              ]
+            },
+            "description": "ADMIN ROLE ONLY - Comprehensive platform statistics and KPIs\n\nRoles that can access:\n- admin: Full access to platform metrics\n\nRoles that CANNOT access:\n- user, company, ngo: Access denied\n\nMetrics included:\n- Total users, campaigns, donations\n- Revenue and transaction analytics\n- User engagement and retention metrics\n- Geographic distribution\n- Growth trends and projections\n- Platform health indicators"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Processing",
+      "description": "Payment-related endpoints for donation processing",
+      "item": [
+        {
+          "name": "Create Payment Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"donationId\": \"60f7b1b3b3f1b3001f7b1b3b\",\n  \"amount\": 1000,\n  \"currency\": \"INR\",\n  \"paymentMethod\": \"upi\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/create-order",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "create-order"]
+            },
+            "description": "PUBLIC ACCESS - Create payment order for donation\n\nNo authentication required (supports guest donations)\nIntegrates with payment gateways (Razorpay, Stripe, etc.)\n\nSupported payment methods:\n- UPI, Net Banking, Credit/Debit Cards, Wallets\n\nCreates secure payment order with encrypted details\nReturns payment gateway redirect URL or payment form"
+          }
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"order_123456789\",\n  \"paymentId\": \"pay_123456789\",\n  \"signature\": \"payment_signature\",\n  \"status\": \"success\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "verify"]
+            },
+            "description": "PUBLIC ACCESS - Verify payment completion and update donation status\n\nNo authentication required (webhook/callback endpoint)\nVerifies payment gateway signatures for security\n\nPayment verification process:\n- Validates payment signature from gateway\n- Updates donation status to 'completed'\n- Updates campaign raised amount\n- Triggers confirmation email to donor\n- Generates tax receipt for eligible donations"
+          }
+        },
+        {
+          "name": "Get Payment Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/status/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "status", "{{orderId}}"]
+            },
+            "description": "PUBLIC ACCESS - Check payment status by order ID\n\nNo authentication required\nUsed for payment confirmation and receipt generation\nReturns current payment status and transaction details\n\nUseful for:\n- Payment confirmation pages\n- Receipt generation\n- Failed payment retry logic\n- Customer support queries"
+          }
+        }
+      ]
+    },
+    {
+      "name": "File Upload",
+      "description": "File upload endpoints with role-based restrictions",
+      "item": [
+        {
+          "name": "Upload Campaign Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "campaignImage",
+                  "type": "file",
+                  "description": "Campaign cover image"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns/{{campaignId}}/upload-image",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns", "{{campaignId}}", "upload-image"]
+            },
+            "description": "CAMPAIGN OWNER ACCESS - Only campaign creators can upload images\n\nRoles that can access:\n- company: Can upload images for their campaigns\n- ngo: Can upload images for their campaigns\n\nRoles that CANNOT access:\n- user: Cannot upload campaign images (not campaign creators)\n- admin: Use admin dashboard for campaign management\n\nFile restrictions:\n- Max size: 5MB\n- Allowed formats: JPG, PNG, GIF, WebP\n- Secure filename generation\n- Automatic image optimization and resizing\n- Multiple images per campaign supported"
+          }
+        },
+        {
+          "name": "Upload Profile Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "profileImage",
+                  "type": "file",
+                  "description": "User profile image"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/upload-profile-image",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "upload-profile-image"]
+            },
+            "description": "AUTHENTICATED ACCESS - All roles can upload profile images\n\nRoles that can access:\n- user, company, ngo, admin: All authenticated users\n\nFile restrictions:\n- Max size: 5MB\n- Allowed formats: JPG, PNG, GIF, WebP\n- Automatic image resizing and optimization\n- Secure storage with CDN integration\n- Previous images automatically cleaned up"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Search and Filtering",
+      "description": "Search endpoints for discovering campaigns and organizations",
+      "item": [
+        {
+          "name": "Search Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns/search?q=education&category=education&location=mumbai&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "education",
+                  "description": "Search query"
+                },
+                {
+                  "key": "category",
+                  "value": "education",
+                  "description": "Filter by category"
+                },
+                {
+                  "key": "location",
+                  "value": "mumbai",
+                  "description": "Filter by location"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "PUBLIC ACCESS - Search campaigns with advanced filtering\n\nNo authentication required\nSearches through active campaigns only\n\nSearch capabilities:\n- Full-text search in title and description\n- Category-based filtering\n- Location-based filtering\n- Goal amount range filtering\n- Sorting by relevance, date, popularity\n- Tag-based discovery"
+          }
+        },
+        {
+          "name": "Get Popular Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns/popular?limit=10&timeframe=30d",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns", "popular"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "timeframe",
+                  "value": "30d",
+                  "description": "Time period: 7d, 30d, 90d"
+                }
+              ]
+            },
+            "description": "PUBLIC ACCESS - Get trending and popular campaigns\n\nNo authentication required\nReturns campaigns sorted by:\n- Donation volume and frequency\n- Social engagement metrics\n- Recent activity and updates\n- Success rate and completion likelihood\n\nUseful for homepage featured campaigns and recommendations"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error Testing",
+      "description": "Test endpoints for error handling and edge cases",
+      "item": [
+        {
+          "name": "Rate Limit Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Rate Limit Test\",\n  \"email\": \"ratelimit@example.com\",\n  \"phoneNumber\": \"9999999999\",\n  \"password\": \"Password123!\",\n  \"role\": \"user\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "PUBLIC ACCESS - Test rate limiting functionality\n\nUse this endpoint repeatedly to test rate limiting:\n- Registration: Max 20 attempts per hour per IP\n- Authentication: Max 5 attempts per 15 minutes per IP\n- Password reset: Max 3 attempts per 15 minutes per IP\n\nRate limits apply to all roles equally\nReturns 429 status when limit exceeded\nUseful for security testing and validation"
+          }
+        },
+        {
+          "name": "Invalid ObjectId Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns/invalidid",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns", "invalidid"]
+            },
+            "description": "PUBLIC ACCESS - Test invalid MongoDB ObjectId handling\n\nTests application's handling of malformed ObjectIds\nReturns 400 Bad Request for invalid ObjectId format\nValidates input validation middleware functionality\n\nUseful for testing error handling and validation"
+          }
+        },
+        {
+          "name": "Invalid Role Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"phoneNumber\": \"9999999999\",\n  \"password\": \"Password123!\",\n  \"role\": \"invalidrole\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "PUBLIC ACCESS - Test invalid role validation\n\nTests role validation middleware\nValid roles: user, company, ngo, admin (admin only in development)\nReturns 400 Bad Request for invalid roles\n\nValidates business logic enforcement\nUseful for security testing"
+          }
+        }
+      ]
+    }
+  ]
+}

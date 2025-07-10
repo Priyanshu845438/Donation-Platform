@@ -1,96 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Basic Meta Tags -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CharityPlus - Empowering Change</title>
+
+    <!-- SEO & Social Sharing Meta Tags -->
+    <meta name="description" content="CharityPlus is a modern donation platform connecting donors, NGOs, and companies for transparent and impactful charitable giving." />
+    <meta name="keywords" content="charity, donation, non-profit, ngo, fundraising, philanthropy, social good" />
+    <meta name="author" content="CharityPlus" />
+    <meta name="theme-color" content="#0a60c8">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://charityplus.app" />
+    <meta property="og:title" content="CharityPlus - Empowering Change" />
+    <meta property="og:description" content="Join a global movement dedicated to making a tangible impact on the world's most pressing issues." />
+    <meta property="og:image" content="https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?q=80&w=1200&auto=format&fit=crop" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://charityplus.app" />
+    <meta property="twitter:title" content="CharityPlus - Empowering Change" />
+    <meta property="twitter:description" content="Join a global movement dedicated to making a tangible impact on the world's most pressing issues." />
+    <meta property="twitter:image" content="https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?q=80&w=1200&auto=format&fit=crop" />
+
+    <!-- Favicon (Embedded SVG for crisp look and no extra requests) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💙</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💙</text></svg>">
+
+    <!-- Performance & Resource Hints -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://esm.sh">
+    <link rel="preconnect" href="https://unpkg.com">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS (CDN for rapid development) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+        // Tailwind CSS Configuration
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         primary: {
-                            DEFAULT: '#4F46E5', // indigo-600
-                            light: '#6366F1',   // indigo-500
-                            dark: '#4338CA',    // indigo-700
+                            DEFAULT: '#0a60c8', // A richer, slightly more subdued blue
+                            light: '#3b82f6',
+                            dark: '#084b9e',
                         },
                         secondary: {
-                            DEFAULT: '#EC4899', // pink-500
-                            light: '#F472B6',   // pink-400
-                            dark: '#DB2777',    // pink-600
+                            DEFAULT: '#10b981', // A vibrant, hopeful teal/green
+                            light: '#34d399',
+                            dark: '#059669',
                         },
-                        background: '#111827', // gray-900
-                        surface: '#1F2937',    // gray-800
-                        'copy': '#F9FAFB',       // gray-50
-                        'copy-muted': '#9CA3AF', // gray-400
-                        'border': '#374151',     // gray-700
+                        accent: {
+                           DEFAULT: '#f59e0b', // A warm, engaging amber
+                           dark: '#d97706'
+                        },
+                        background: '#fcfdff', // A very soft, slightly warm off-white
+                        surface: '#ffffff',    // Pure White for cards and surfaces
+                        border: '#e5e7eb',     // A neutral light gray border
+                        'text-primary': '#1f2937', // A strong, dark slate for text
+                        'text-secondary': '#6b7280', // A softer gray for secondary text
                     },
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
+                        display: ['Poppins', 'sans-serif'],
                     },
+                     boxShadow: {
+                        'serene': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.04)',
+                        'serene-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05)',
+                     },
                     animation: {
-                        'fade-in': 'fade-in 0.5s ease-out forwards',
-                        'fade-in-down': 'fade-in-down 0.6s ease-out forwards',
-                        'fade-in-up': 'fade-in-up 0.6s ease-out forwards',
-                        'gradient-bg': 'gradient-bg 10s ease infinite',
-                        'ken-burns': 'ken-burns 20s ease-out forwards',
-                        'reveal-up': 'reveal-up 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards',
-                        'progress-fill': 'progress-fill 7s linear forwards',
-                        'scroll-left': 'scroll-left 60s linear infinite',
-                        'float': 'float 6s ease-in-out infinite',
+                        'fade-in': 'fade-in 0.6s ease-out forwards',
+                        'slide-in-up': 'slide-in-up 0.7s cubic-bezier(0.25, 1, 0.5, 1) forwards',
+                        'slide-in-down': 'slide-in-down 0.7s cubic-bezier(0.25, 1, 0.5, 1) forwards',
+                        'slow-zoom': 'slow-zoom 15s ease-in-out infinite alternate',
                     },
                     keyframes: {
                         'fade-in': {
                             'from': { opacity: '0' },
                             'to': { opacity: '1' },
                         },
-                        'fade-in-down': {
-                            'from': { opacity: '0', transform: 'translateY(-20px)' },
-                            'to': { opacity: '1', transform: 'translateY(0)' },
-                        },
-                        'fade-in-up': {
+                        'slide-in-up': {
                             'from': { opacity: '0', transform: 'translateY(20px)' },
                             'to': { opacity: '1', transform: 'translateY(0)' },
                         },
-                        'gradient-bg': {
-                            '0%, 100%': { 'background-position': '0% 50%' },
-                            '50%': { 'background-position': '100% 50%' },
+                         'slide-in-down': {
+                            'from': { opacity: '0', transform: 'translateY(-20px)' },
+                            'to': { opacity: '1', transform: 'translateY(0)' },
                         },
-                        'ken-burns': {
-                            '0%': { transform: 'scale(1) translateY(0)', 'transform-origin': 'center' },
-                            '100%': { transform: 'scale(1.15) translateY(-1%)', 'transform-origin': 'center' },
-                        },
-                        'reveal-up': {
-                            '0%': { transform: 'translateY(100%)' },
-                            '100%': { transform: 'translateY(0)' },
-                        },
-                        'progress-fill': {
-                            'from': { width: '0%' },
-                            'to': { width: '100%' },
-                        },
-                        'scroll-left': {
-                            'from': { transform: 'translateX(0)' },
-                            'to': { transform: 'translateX(-50%)' },
-                        },
-                        'float': {
-                            '0%': { transform: 'translatey(0px)' },
-                            '50%': { transform: 'translatey(-20px)' },
-                            '100%': { transform: 'translatey(0px)' },
-                        },
-                    },
-                    backdropBlur: {
-                        lg: '12px',
-                        xl: '24px',
+                        'slow-zoom': {
+                            'from': { transform: 'scale(1)' },
+                            'to': { transform: 'scale(1.1)' },
+                        }
                     },
                 },
             },
         };
     </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     
+    <!-- JavaScript Dependencies via Import Map (ESM) -->
     <script type="importmap">
 {
   "imports": {
@@ -106,12 +120,14 @@
 }
 </script>
 </head>
-<body class="bg-background text-copy font-sans antialiased">
+<body class="bg-background text-text-primary font-sans antialiased">
     <div id="root"></div>
-    <!-- The app bundle -->
+    
+    <!-- Main Application Bundle -->
     <script type="module" src="/index.tsx"></script>
-    <!-- Ionicons -->
-    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    
+    <!-- Icons (Ionicons) - deferred for non-blocking load -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js" defer></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js" defer></script>
 </body>
 </html>

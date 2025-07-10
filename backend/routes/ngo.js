@@ -1,13 +1,13 @@
 const express = require("express");
 const User = require("../models/User"); // Import User model
-const authMiddleware = require("../middleware/auth"); // Import auth middleware
+const { authMiddleware } = require("../middleware/auth"); // Import auth middleware
 
 const router = express.Router();
 
 /**
  * ✅ Get All Companies (NGO Only)
  */
-router.get("/companies", authMiddleware(["ngo"]), async (req, res) => {
+router.get("/companies", authMiddleware, async (req, res) => {
     try {
         const companies = await User.find({ role: "company" }).select("-password"); // Exclude password
         res.status(200).json({
@@ -22,7 +22,7 @@ router.get("/companies", authMiddleware(["ngo"]), async (req, res) => {
 /**
  * ✅ Get a Single Company Profile (NGO Only)
  */
-router.get("/company/:id", authMiddleware(["ngo"]), async (req, res) => {
+router.get("/company/:id", authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
 

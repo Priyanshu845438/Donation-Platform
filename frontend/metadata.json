@@ -1,5 +1,6 @@
 {
   "name": "CharityPlus",
   "description": "A platform to connect donors, NGOs, and companies to facilitate transparent and impactful charitable giving.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "prompt": ""
 }

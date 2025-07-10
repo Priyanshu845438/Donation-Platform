@@ -1,46 +1,98 @@
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const { upload, handleMulterError } = require('../config/multerConfig');
+const logger = require('../utils/logger');
 
-// Ensure directories exist
-const createFolder = (folderPath) => {
-    if (!fs.existsSync(folderPath)) {
-        fs.mkdirSync(folderPath, { recursive: true });
-    }
+/**
+ * Single file upload middleware
+ */
+const singleFileUpload = (fieldName) => {
+    return [
+        upload.single(fieldName),
+        handleMulterError,
+        (req, res, next) => {
+            if (req.file) {
+                logger.info(`File uploaded: ${req.file.filename}`);
+            }
+            next();
+        }
+    ];
 };
 
-const imageStoragePath = "uploads/campaign/image/";
-const proofStoragePath = "uploads/campaign/proof/";
+/**
+ * Multiple files upload middleware
+ */
+const multipleFilesUpload = (fieldName, maxCount = 5) => {
+    return [
+        upload.array(fieldName, maxCount),
+        handleMulterError,
+        (req, res, next) => {
+            if (req.files && req.files.length > 0) {
+                logger.info(`${req.files.length} files uploaded`);
+            }
+            next();
+        }
+    ];
+};
 
-createFolder(imageStoragePath);
-createFolder(proofStoragePath);
+/**
+ * Fields upload middleware for mixed file types
+ */
+const fieldsUpload = (fields) => {
+    return [
+        upload.fields(fields),
+        handleMulterError,
+        (req, res, next) => {
+            if (req.files) {
+                const fileCount = Object.keys(req.files).reduce((total, key) => {
+                    return total + req.files[key].length;
+                }, 0);
+                logger.info(`${fileCount} files uploaded across multiple fields`);
+            }
+            next();
+        }
+    ];
+};
 
-// Multer storage for images
-const imageStorage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, imageStoragePath);
-    },
-    filename: function (req, file, cb) {
-        const campaignId = req.body.campaignId || "temp"; // Use 'temp' if campaign ID is not available yet
-        const ext = path.extname(file.originalname);
-        cb(null, `campaign_${campaignId}_${Date.now()}${ext}`);
-    }
-});
+/**
+ * Profile image upload middleware
+ */
+const profileImageUpload = singleFileUpload('profileImage');
 
-// Multer storage for proof documents
-const proofStorage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, proofStoragePath);
-    },
-    filename: function (req, file, cb) {
-        const campaignId = req.body.campaignId || "temp";
-        const ext = path.extname(file.originalname);
-        cb(null, `proof_${campaignId}_${Date.now()}${ext}`);
-    }
-});
+/**
+ * Company logo upload middleware
+ */
+const companyLogoUpload = singleFileUpload('companyLogo');
 
-// Multer upload handlers
-const uploadImage = multer({ storage: imageStorage }).array("campaignImages", 5); // Up to 5 images
-const uploadProof = multer({ storage: proofStorage }).array("proofDocs", 5); // Up to 5 proof docs
+/**
+ * NGO logo upload middleware
+ */
+const ngoLogoUpload = singleFileUpload('ngoLogo');
 
-module.exports = { uploadImage, uploadProof };
+/**
+ * Campaign images upload middleware
+ */
+const campaignImagesUpload = multipleFilesUpload('campaignImages', 5);
+
+/**
+ * Campaign documents upload middleware
+ */
+const campaignDocumentsUpload = multipleFilesUpload('campaignDocuments', 3);
+
+/**
+ * Mixed campaign files upload middleware
+ */
+const campaignFilesUpload = fieldsUpload([
+    { name: 'campaignImages', maxCount: 5 },
+    { name: 'campaignDocuments', maxCount: 3 }
+]);
+
+module.exports = {
+    singleFileUpload,
+    multipleFilesUpload,
+    fieldsUpload,
+    profileImageUpload,
+    companyLogoUpload,
+    ngoLogoUpload,
+    campaignImagesUpload,
+    campaignDocumentsUpload,
+    campaignFilesUpload
+};

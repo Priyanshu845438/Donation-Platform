@@ -8,7 +8,7 @@ const {
     getUserCampaigns,
     getCampaignStats
 } = require('../controllers/campaignController');
-const { userMiddleware, adminMiddleware, optionalAuthMiddleware, ngoMiddleware, companyMiddleware } = require('../middleware/auth');
+const { userMiddleware, optionalAuthMiddleware } = require('../middleware/auth');
 const {
     validateCampaignCreation,
     validateCampaignUpdate,

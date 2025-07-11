@@ -5,7 +5,6 @@ import StatCard from '../components/dashboard/StatCard';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import StatusBadge from '../components/common/StatusBadge';
 import { apiFetch } from '../utils/api';
-import { ADMIN_ENDPOINTS } from '../utils/adminEndpoints';
 import { AdminAnalytics } from '../types';
 import { Link } from 'react-router-dom';
 
@@ -20,7 +19,7 @@ const AdminDashboard: React.FC = () => {
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                const data = await apiFetch<AdminAnalytics>(ADMIN_ENDPOINTS.ANALYTICS);
+                const data = await apiFetch<AdminAnalytics>('/admin/dashboard/analytics');
                 setStats(data);
             } catch (err: any) {
                 setError(err.message || 'Failed to load dashboard analytics.');

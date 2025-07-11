@@ -111,7 +111,7 @@ const ProfilePage: React.FC = () => {
                         className="w-28 h-28 rounded-full object-cover border-4 border-primary"
                     />
                     <button onClick={() => fileInputRef.current?.click()} disabled={isUploadingImage} className="absolute bottom-0 right-0 bg-primary text-white p-1.5 rounded-full hover:bg-primary-dark transition-colors border-2 border-surface">
-                       {isUploadingImage ? <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin"></div> : <ion-icon name="camera-outline" className="text-lg"></ion-icon>}
+                       {isUploadingImage ? <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin"></div> : <ion-icon name="camera-outline" class="text-lg"></ion-icon>}
                     </button>
                     <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
                 </div>

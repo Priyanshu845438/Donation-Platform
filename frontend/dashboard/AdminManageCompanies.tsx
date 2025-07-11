@@ -1,9 +1,9 @@
+
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import StatusBadge from '../components/common/StatusBadge';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
 import { apiFetch } from '../utils/api';
-import { ADMIN_ENDPOINTS, buildQueryParams } from '../utils/adminEndpoints';
 import { User } from '../types';
 import { useToast } from '../components/ui/Toast';
 
@@ -29,21 +29,11 @@ const AdminManageCompanies: React.FC = () => {
     const [action, setAction] = useState<{ type: 'activate' | 'disable', reason?: string } | null>(null);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [newCompanyData, setNewCompanyData] = useState({
-        fullName: '',
-        email: '',
-        password: '',
-        phoneNumber: ''
-    });
-
-    const inputStyles = "block w-full px-3 py-2 bg-background border border-border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm disabled:opacity-70 disabled:bg-gray-100";
-
     const fetchCompanies = useCallback(async () => {
         setIsLoading(true);
         try {
-            const params = buildQueryParams({ role: 'company', limit: '100' });
-            const data = await apiFetch<{ users: User[] }>(`${ADMIN_ENDPOINTS.USERS.LIST}?${params}`);
+            const params = new URLSearchParams({ role: 'company', limit: '100' });
+            const data = await apiFetch<{ users: User[] }>(`/admin/dashboard/users?${params.toString()}`);
             setCompanies(data.users || []);
         } catch (err: any) {
             setError(err.message || 'Failed to fetch companies');
@@ -67,22 +57,18 @@ const AdminManageCompanies: React.FC = () => {
     }, [filter, searchTerm, companies]);
 
     const handleViewDetails = (company: User) => {
-        if (!company || !company.id) {
-            addToast('Invalid company selected', 'error');
-            return;
-        }
         setSelectedCompany(company);
         setIsEditMode(false);
         setIsDetailModalOpen(true);
     };
-
+    
     const handleUpdateDetails = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedCompany) return;
         setIsSubmitting(true);
         try {
             const { fullName, phoneNumber } = selectedCompany;
-            await apiFetch(ADMIN_ENDPOINTS.USERS.UPDATE_PROFILE(selectedCompany.id), {
+            await apiFetch(`/admin/users/${selectedCompany.id}`, {
                 method: 'PATCH',
                 body: { fullName, phoneNumber }
             });
@@ -98,15 +84,12 @@ const AdminManageCompanies: React.FC = () => {
 
     const handleStatusChange = async () => {
         if (!selectedCompany || !action) return;
-
+        
         try {
             const body = { isActive: action.type === 'activate', reason: action.reason || 'Admin action.' };
-            await apiFetch(ADMIN_ENDPOINTS.USERS.UPDATE_STATUS(selectedCompany.id), { method: 'PATCH', body });
+            await apiFetch(`/admin/users/${selectedCompany.id}/status`, { method: 'PATCH', body });
             addToast(`Company ${action.type}d successfully.`, 'success');
             fetchCompanies();
-             if(selectedCompany) {
-                 setSelectedCompany({...selectedCompany, status: action.type === 'activate' ? 'active' : 'inactive'});
-            }
         } catch (err: any) {
              addToast(err.message || 'Failed to update status.', 'error');
         } finally {
@@ -114,7 +97,7 @@ const AdminManageCompanies: React.FC = () => {
             setAction(null);
         }
     };
-
+    
     const openConfirmationModal = (company: User, type: 'activate' | 'disable') => {
         setSelectedCompany(company);
         setAction({ type });
@@ -122,10 +105,6 @@ const AdminManageCompanies: React.FC = () => {
     }
 
     const openDeleteModal = (company: User) => {
-        if (!company || !company.id) {
-            addToast('Invalid company selected', 'error');
-            return;
-        }
         setCompanyToDelete(company);
         setIsDeleteModalOpen(true);
     };
@@ -133,7 +112,7 @@ const AdminManageCompanies: React.FC = () => {
     const handleDeleteCompany = async () => {
         if (!companyToDelete) return;
         try {
-            await apiFetch(ADMIN_ENDPOINTS.USERS.DELETE(companyToDelete.id), { method: 'DELETE' });
+            await apiFetch(`/admin/users/${companyToDelete.id}`, { method: 'DELETE' });
             addToast('Company deleted successfully.', 'success');
             fetchCompanies();
         } catch (err: any) {
@@ -143,36 +122,10 @@ const AdminManageCompanies: React.FC = () => {
             setCompanyToDelete(null);
         }
     };
-
-    const handleOpenAddModal = () => {
-        setNewCompanyData({ fullName: '', email: '', password: '', phoneNumber: '' });
-        setIsAddModalOpen(true);
-    };
-
-    const handleNewCompanyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setNewCompanyData({ ...newCompanyData, [e.target.name]: e.target.value });
-    };
-
-    const handleAddCompany = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-        try {
-            await apiFetch(ADMIN_ENDPOINTS.USERS.CREATE, {
-                method: 'POST',
-                body: { ...newCompanyData, role: 'company' }
-            });
-            addToast('Company created successfully!', 'success');
-            fetchCompanies();
-            setIsAddModalOpen(false);
-        } catch (err: any) {
-            addToast(err.message || "Failed to create company.", "error");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
+    
     const tableHeaders = ["Company Name", "Contact", "Status", "Actions"];
-
+    const inputStyles = "block w-full px-3 py-2 bg-background border border-border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm disabled:opacity-70 disabled:bg-gray-100";
+    
     return (
         <div className="space-y-6">
             <div>
@@ -182,19 +135,13 @@ const AdminManageCompanies: React.FC = () => {
 
             <div className="bg-surface p-4 rounded-xl shadow-serene border border-border space-y-4 md:space-y-0 md:flex md:items-center md:justify-between gap-4">
                 <div className="flex items-center space-x-2 flex-wrap gap-2">
-                    {(['all', 'active', 'inactive'] as const).map((status, index) => (
-                        <Button key={`filter-${status}-${index}`} onClick={() => setFilter(status)} variant={filter === status ? 'primary' : 'outline'} size="sm" className="capitalize">{status}</Button>
+                    {(['all', 'active', 'inactive'] as const).map(status => (
+                        <Button key={status} onClick={() => setFilter(status)} variant={filter === status ? 'primary' : 'outline'} size="sm" className="capitalize">{status}</Button>
                     ))}
                 </div>
-                <div className="flex items-center gap-4">
-                    <div className="relative flex-shrink-0">
-                        <ion-icon name="search-outline" className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"></ion-icon>
-                        <input type="text" placeholder="Search Companies..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-64 pl-10 pr-4 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none" />
-                    </div>
-                     <Button onClick={handleOpenAddModal} variant="primary">
-                        <ion-icon name="add-outline" className="mr-2"></ion-icon>
-                        Add Company
-                    </Button>
+                <div className="relative flex-shrink-0">
+                    <ion-icon name="search-outline" className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"></ion-icon>
+                    <input type="text" placeholder="Search Companies..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-64 pl-10 pr-4 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none" />
                 </div>
             </div>
 
@@ -279,7 +226,7 @@ const AdminManageCompanies: React.FC = () => {
                     </div>
                 )}
             </Modal>
-
+            
             <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Confirm Deletion">
                 {companyToDelete && (
                     <div className="space-y-4">
@@ -291,32 +238,6 @@ const AdminManageCompanies: React.FC = () => {
                     </div>
                 )}
             </Modal>
-
-            <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add New Company">
-                <form onSubmit={handleAddCompany} className="space-y-4">
-                    <div>
-                        <label htmlFor="fullName" className="block text-sm font-medium text-text-secondary mb-1">Company Name</label>
-                        <input type="text" name="fullName" id="fullName" required value={newCompanyData.fullName} onChange={handleNewCompanyChange} className={inputStyles} />
-                    </div>
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-text-secondary mb-1">Email</label>
-                        <input type="email" name="email" id="email" required value={newCompanyData.email} onChange={handleNewCompanyChange} className={inputStyles} />
-                    </div>
-                    <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-text-secondary mb-1">Password</label>
-                        <input type="password" name="password" id="password" required value={newCompanyData.password} onChange={handleNewCompanyChange} className={inputStyles} autoComplete="new-password" />
-                    </div>
-                    <div>
-                        <label htmlFor="phoneNumber" className="block text-sm font-medium text-text-secondary mb-1">Phone Number</label>
-                        <input type="tel" name="phoneNumber" id="phoneNumber" value={newCompanyData.phoneNumber} onChange={handleNewCompanyChange} className={inputStyles} />
-                    </div>
-                    <div className="flex justify-end space-x-3 pt-4 border-t border-border">
-                        <Button type="button" onClick={() => setIsAddModalOpen(false)} variant="outline">Cancel</Button>
-                        <Button type="submit" variant="primary" disabled={isSubmitting}>{isSubmitting ? "Creating..." : "Create Company"}</Button>
-                    </div>
-                </form>
-            </Modal>
-
         </div>
     );
 };

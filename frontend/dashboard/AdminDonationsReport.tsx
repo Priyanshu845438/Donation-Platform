@@ -3,7 +3,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import StatusBadge from '../components/common/StatusBadge';
 import Button from '../components/common/Button';
 import { apiFetch } from '../utils/api';
-import { ADMIN_ENDPOINTS } from '../utils/adminEndpoints';
 import { Donation } from '../types';
 import { useToast } from '../components/ui/Toast';
 
@@ -59,7 +58,7 @@ const AdminReports: React.FC = () => {
         const fetchDonations = async () => {
             setIsLoading(true);
             try {
-                const data = await apiFetch<{ donations: Donation[] }>(ADMIN_ENDPOINTS.REPORTS.DONATIONS);
+                const data = await apiFetch<{ donations: Donation[] }>('/donations');
                 setDonations(data.donations || []);
             } catch (err: any) {
                 setError(err.message || 'Failed to fetch donations report.');
@@ -167,7 +166,7 @@ const AdminReports: React.FC = () => {
             )}
              {activeTab !== 'Donations' && (
                 <div className="bg-surface rounded-xl shadow-serene border border-border p-12 text-center">
-                    <ion-icon name="analytics-outline" className="text-6xl text-gray-300"></ion-icon>
+                    <ion-icon name="analytics-outline" class="text-6xl text-gray-300"></ion-icon>
                     <h3 className="mt-4 text-xl font-semibold text-text-primary">{activeTab} Report</h3>
                     <p className="mt-2 text-text-secondary">This report is not yet available. Please check back later.</p>
                 </div>

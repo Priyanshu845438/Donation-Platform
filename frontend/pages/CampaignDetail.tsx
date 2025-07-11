@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router';
-import { Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Campaign } from '../types';
 import { apiFetch } from '../utils/api';
 import Button from '../components/common/Button';
@@ -49,7 +48,9 @@ const CampaignDetail: React.FC = () => {
         return <div className="text-center py-20 bg-background"><p>Campaign not found.</p></div>;
     }
 
-    const percentage = campaign.goal > 0 ? Math.min(100, Math.round((campaign.raised / campaign.goal) * 100)) : 0;
+    const raised = campaign.raised || 0;
+    const goal = campaign.goal || 0;
+    const percentage = goal > 0 ? Math.min(100, Math.round((raised / goal) * 100)) : 0;
 
     return (
         <div className="bg-surface animate-fade-in">
@@ -66,8 +67,8 @@ const CampaignDetail: React.FC = () => {
 
                         <div className="my-8">
                             <div className="flex justify-between items-end text-lg mb-2">
-                                <span className="font-bold text-secondary text-2xl">${campaign.raised.toLocaleString()}</span>
-                                <span className="text-text-secondary">raised of ${campaign.goal.toLocaleString()} goal</span>
+                                <span className="font-bold text-secondary text-2xl">${raised.toLocaleString()}</span>
+                                <span className="text-text-secondary">raised of ${goal.toLocaleString()} goal</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-4">
                                 <div className="bg-secondary h-4 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ width: `${percentage}%` }}>
@@ -76,7 +77,7 @@ const CampaignDetail: React.FC = () => {
                             </div>
                         </div>
 
-                        <p className="text-text-secondary text-lg leading-relaxed">{campaign.description}</p>
+                        <p className="text-text-secondary text-lg leading-relaxed">{campaign.description || ''}</p>
                         
                         <div className="mt-10">
                             <Button size="lg" variant="accent" className="w-full">

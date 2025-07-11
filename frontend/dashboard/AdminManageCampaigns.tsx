@@ -1,9 +1,9 @@
+
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import StatusBadge from '../components/common/StatusBadge';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
 import { apiFetch } from '../utils/api';
-import { ADMIN_ENDPOINTS, buildQueryParams } from '../utils/adminEndpoints';
 import { Campaign } from '../types';
 import { useToast } from '../components/ui/Toast';
 
@@ -21,22 +21,21 @@ const AdminManageCampaigns: React.FC = () => {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-
+    
     const [isActionModalOpen, setIsActionModalOpen] = useState(false);
     const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
-
+    
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null);
 
     const [action, setAction] = useState<{ type: 'approve' | 'reject' | 'suspend', reason: string } | null>(null);
-
+    
     const fetchCampaigns = useCallback(async () => {
         setIsLoading(true);
         try {
-            const queryParams: Record<string, any> = { limit: '100' };
-            if (filter !== 'all') queryParams.status = filter;
-            const params = buildQueryParams(queryParams);
-            const data = await apiFetch<{ campaigns: Campaign[] }>(`${ADMIN_ENDPOINTS.CAMPAIGNS.LIST}?${params}`);
+            const params = new URLSearchParams({ limit: '100' });
+            if (filter !== 'all') params.append('status', filter);
+            const data = await apiFetch<{ campaigns: Campaign[] }>(`/admin/dashboard/campaigns?${params.toString()}`);
             setCampaigns(data.campaigns || []);
         } catch (err: any) {
             setError(err.message || 'Failed to fetch campaigns');
@@ -68,7 +67,7 @@ const AdminManageCampaigns: React.FC = () => {
         setIsSubmitting(true);
         try {
             const { title, description, goal } = selectedCampaign;
-            await apiFetch(ADMIN_ENDPOINTS.CAMPAIGNS.UPDATE(selectedCampaign.id), {
+            await apiFetch(`/admin/dashboard/campaigns/${selectedCampaign.id}`, {
                 method: 'PATCH',
                 body: { title, description, goal: Number(goal) }
             });
@@ -81,7 +80,7 @@ const AdminManageCampaigns: React.FC = () => {
             setIsSubmitting(false);
         }
     }
-
+    
     const openActionModal = (campaign: Campaign, type: 'approve' | 'reject' | 'suspend') => {
         setSelectedCampaign(campaign);
         setAction({ type, reason: '' });
@@ -92,11 +91,11 @@ const AdminManageCampaigns: React.FC = () => {
         setCampaignToDelete(campaign);
         setIsDeleteModalOpen(true);
     }
-
+    
     const handleDeleteCampaign = async () => {
         if (!campaignToDelete) return;
         try {
-            await apiFetch(ADMIN_ENDPOINTS.CAMPAIGNS.DELETE(campaignToDelete.id), { method: 'DELETE' });
+            await apiFetch(`/admin/dashboard/campaigns/${campaignToDelete.id}`, { method: 'DELETE' });
             addToast('Campaign deleted successfully!', 'success');
             fetchCampaigns();
         } catch (err: any) {
@@ -109,13 +108,13 @@ const AdminManageCampaigns: React.FC = () => {
 
     const handleStatusChange = async () => {
         if (!selectedCampaign || !action) return;
-
+        
         try {
             let statusToSend = action.type;
             if (action.type === 'approve') statusToSend = 'active' as any;
 
             const body = { status: statusToSend, reason: action.reason };
-            await apiFetch(ADMIN_ENDPOINTS.CAMPAIGNS.UPDATE_STATUS(selectedCampaign.id), { method: 'PATCH', body });
+            await apiFetch(`/admin/dashboard/campaigns/${selectedCampaign.id}/status`, { method: 'PATCH', body });
             addToast(`Campaign status updated to ${statusToSend}.`, 'success');
             fetchCampaigns();
         } catch(err: any) {
@@ -126,7 +125,7 @@ const AdminManageCampaigns: React.FC = () => {
             setSelectedCampaign(null);
         }
     }
-
+    
     const handleShare = (campaignId: string) => {
         const url = `${window.location.origin}/#/campaigns/${campaignId}`;
         navigator.clipboard.writeText(url).then(() => {
@@ -167,18 +166,22 @@ const AdminManageCampaigns: React.FC = () => {
                             <tr>{tableHeaders.map(h => <th key={h} scope="col" className="px-6 py-3">{h}</th>)}</tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {filteredCampaigns.map((campaign) => (
-                                            <tr key={`campaign-${campaign.id}`} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4 font-medium">{campaign.title}</td>
+                            {filteredCampaigns.map((campaign) => {
+                                const raised = campaign.raised ?? 0;
+                                const goal = campaign.goal ?? 0;
+                                const percentage = goal > 0 ? Math.round((raised / goal) * 100) : 0;
+                                return (
+                                <tr key={campaign.id} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 font-medium">{campaign.title}</td>
                                     <td className="px-6 py-4 text-text-secondary">{campaign.creator?.name || 'N/A'}</td>
                                     <td className="px-6 py-4 font-mono">
-                                        <span className="text-secondary">${campaign.raised.toLocaleString()}</span> / ${campaign.goal.toLocaleString()}
+                                        <span className="text-secondary">${raised.toLocaleString()}</span> / ${goal.toLocaleString()}
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                            <div className="bg-secondary h-2.5 rounded-full" style={{ width: `${campaign.goal > 0 ? Math.round((campaign.raised / campaign.goal) * 100) : 0}%` }}></div>
+                                            <div className="bg-secondary h-2.5 rounded-full" style={{ width: `${percentage > 100 ? 100 : percentage}%` }}></div>
                                         </div>
-                                        <span className="text-xs text-text-secondary">{campaign.goal > 0 ? Math.round((campaign.raised / campaign.goal) * 100) : 0}%</span>
+                                        <span className="text-xs text-text-secondary">{percentage}%</span>
                                     </td>
                                     <td className="px-6 py-4"><StatusBadge status={campaign.status as any} /></td>
                                     <td className="px-6 py-4">
@@ -192,12 +195,12 @@ const AdminManageCampaigns: React.FC = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                            )})}
                         </tbody>
                     </table>}
                 </div>
             </div>
-
+            
             <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Campaign Details" size="xl">
                 {selectedCampaign && (
                      <form onSubmit={handleUpdateDetails} className="space-y-6 text-text-primary">
@@ -225,7 +228,7 @@ const AdminManageCampaigns: React.FC = () => {
                     </form>
                 )}
             </Modal>
-
+            
             <Modal isOpen={isActionModalOpen} onClose={() => setIsActionModalOpen(false)} title="Confirm Action">
                  {selectedCampaign && action && (
                      <div className="space-y-4">

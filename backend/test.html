@@ -1,0 +1,34 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Tests</title>
+</head>
+<body>
+    <h1>API Testing Dashboard</h1>
+    <button onclick="runAllTests()">Run All Tests</button>
+    <button onclick="runAuthTests()">Test Authentication</button>
+    <button onclick="runPublicTests()">Test Public APIs</button>
+    <div id="results"></div>
+
+    <script src="./docs/testing/api-tests.js"></script>
+    <script>
+        async function runAllTests() {
+            const testSuite = new window.APITests.APITestSuite();
+            await testSuite.runAllTests();
+        }
+
+        async function runAuthTests() {
+            await window.APITests.authTests.testUserLogin();
+            await window.APITests.authTests.testGetProfile();
+        }
+
+        async function runPublicTests() {
+            await window.APITests.publicTests.testGetAllCampaigns();
+            await window.APITests.publicTests.testGetPlatformStats();
+        }
+    </script>
+</body>
+</html>

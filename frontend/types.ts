@@ -1,114 +1,117 @@
 
-export enum UserRole {
-    ADMIN = 'admin',
-    NGO = 'ngo',
-    COMPANY = 'company',
-    USER = 'user',
-}
-
 export interface User {
-    id: string;
-    fullName: string;
-    email: string;
-    role: UserRole;
-    phoneNumber?: string;
-    status?: 'active' | 'inactive' | 'pending';
-    profileImageUrl?: string;
-}
-
-export interface AuthContextType {
-    isAuthenticated: boolean;
-    user: User | null;
-    token: string | null;
-    login: (token: string, user: User) => void;
-    logout: () => void;
-    updateUser: (data: Partial<User>) => void;
-    isLoading: boolean;
+  _id: string;
+  id: string;
+  username: string;
+  name: string;
+  fullName: string;
+  email: string;
+  password?: string;
+  phoneNumber?: string;
+  role: 'admin' | 'ngo' | 'company' | 'donor';
+  status: 'active' | 'pending' | 'disabled';
+  avatar: string;
+  createdAt: string;
+  isActive: boolean;
+  approvalStatus: 'pending' | 'approved' | 'rejected';
+  profile?: {
+    _id?: string;
+    description?: string;
+    address?: string;
+    website?: string;
+    // NGO specific
+    ngoName?: string;
+    registrationNumber?: string;
+    registeredYear?: string;
+    numberOfEmployees?: number;
+    ngoType?: string;
+    panNumber?: string;
+    tanNumber?: string;
+    gstNumber?: string;
+    is80GCertified?: boolean;
+    is12ACertified?: boolean;
+    authorizedPerson?: {
+        name?: string;
+        phone?: string;
+        email?: string;
+    };
+    bankDetails?: {
+        accountHolderName?: string;
+        accountNumber?: string;
+        ifscCode?: string;
+        bankName?: string;
+        branchName?: string;
+    };
+    // Company specific
+    companyName?: string;
+    companyEmail?: string;
+    companyPhoneNumber?: string;
+    companyAddress?: string;
+    companyType?: string;
+    ceoName?: string;
+    ceoContactNumber?: string;
+    ceoEmail?: string;
+  };
 }
 
 export interface Campaign {
+  _id: string;
   id: string;
   title: string;
+  slug: string;
+  organizer: string;
+  organizerId: string;
+  organizerLogo: string;
   description: string;
-  imageUrl: string;
+  fullDescription: string;
   goal: number;
   raised: number;
-  category?: string;
-  endDate?: string;
-  ngo?: { name: string };
-  status?: string;
-  creator?: {
-      id: string;
-      name: string;
-  }
+  category: string;
+  location: string;
+  verified: boolean;
+  urgent: boolean;
+  images: string[];
+  status: 'active' | 'completed' | 'disabled';
+  endDate: string;
+  isActive: boolean;
+  approvalStatus: 'pending' | 'approved' | 'rejected';
+  targetAmount?: number;
+  ngoId?: { _id: string; fullName: string; };
+  // Add all other fields from API
+  campaignName?: string;
+  goalAmount?: number;
+  currentAmount?: number;
+  beneficiaries?: string;
+  importance?: string;
+  explainStory?: string;
+  contactNumber?: string;
+  donationLink?: string;
+  createdBy?: string | User;
 }
 
-export interface Donation {
-    id: string;
-    amount: number;
-    date: string;
-    campaign: {
-        id: string;
-        title: string;
-    };
-    status: 'Paid' | 'Failed' | 'Pending';
-    donor?: {
-        id: string;
-        name: string;
-    };
+export interface Testimonial {
+  id: number;
+  name: string;
+  role: string;
+  quote: string;
+  avatar: string;
 }
 
-// For Admin Analytics
-export interface AdminAnalytics {
-    overview: {
-        totalNGOs: number;
-        totalCompanies: number;
-        activeCampaigns: number;
-        totalDonations: number;
-        totalUsers: number;
-    };
-    monthlyDonations: { month: string; donations: number }[];
-    recentDonations: Donation[];
-    topDonors: any[];
-    campaignStats: any;
+export interface TeamMember {
+  id: number;
+  name:string;
+  role: string;
+  imageUrl: string;
 }
 
-
-// For NGO Profile
-export interface NgoProfile {
-    id: string;
-    ngoName: string;
-    address: {
-        street: string;
-        city: string;
-        state: string;
-        postalCode: string;
-        country: string;
-    };
-    authorizedPerson: {
-        name: string;
-        phone: string;
-        email: string;
-        designation: string;
-    };
-    workingAreas: string[];
-    targetBeneficiaries: string[];
-    documents: {
-        registrationCertificate?: string;
-        panCard?: string;
-        '80gCertificate'?: string;
-    }
+export interface PolicyDocument {
+  id: string;
+  title: string;
+  url: string;
+  description: string;
 }
 
-// For Company Profile
-export interface CompanyProfile {
-    id: string;
-    companyName: string;
-    companyAddress: string;
-    ceoName: string;
-    ceoContactNumber: string;
-    companyType: string;
-    numberOfEmployees: number;
-    website: string;
-    companyLogo?: string;
+export interface PolicyContent {
+  title: string;
+  content: string;
 }

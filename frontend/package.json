@@ -1,20 +1,24 @@
 {
-  "name": "charityplus",
+  "name": "frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "start": "vite",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.1.11",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-router-dom": "6.22.3",
-    "recharts": "2.12.6",
-    "tailwindcss": "^4.1.11"
+    "@google/genai": "^1.9.0",
+    "chart.js": "^4.4.3",
+    "donation-platform": "file:..",
+    "framer-motion": "^11.3.19",
+    "react": "^19.1.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^19.1.0",
+    "react-icons": "^5.5.0",
+    "react-router-dom": "^7.6.3"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
@@ -22,7 +26,7 @@
     "typescript": "~5.7.2",
     "vite": "^6.2.0"
   },
-  "description": "This is the frontend for CharityPlus, a modern donation platform built with React, TypeScript, and Tailwind CSS.",
+  "description": "This contains everything you need to run your app locally.",
   "main": "index.js",
   "keywords": [],
   "author": "",

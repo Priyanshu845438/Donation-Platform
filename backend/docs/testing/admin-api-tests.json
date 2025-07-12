@@ -1,0 +1,1194 @@
+
+{
+  "info": {
+    "name": "Admin API Endpoints Testing",
+    "description": "Complete test collection for all admin role endpoints in the Donation Platform",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{admin_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://0.0.0.0:5000",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string",
+      "description": "Admin JWT token - set after login"
+    },
+    {
+      "key": "test_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "test_ngo_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "test_company_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "test_campaign_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Admin Authentication",
+      "description": "Admin login and authentication endpoints",
+      "item": [
+        {
+          "name": "Setup Admin Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/setup-admin",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "setup-admin"]
+            },
+            "description": "Creates default admin account (run once only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('admin_token', response.token);",
+                  "    console.log('✅ Admin token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"acadify.online@gmail.com\",\n  \"password\": \"Acadify@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login as admin user"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📊 Dashboard & Analytics",
+      "description": "Admin dashboard and analytics endpoints",
+      "item": [
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "dashboard"]
+            },
+            "description": "Get admin dashboard overview"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/dashboard/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "dashboard", "stats"]
+            },
+            "description": "Get detailed dashboard statistics"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "👥 User Management",
+      "description": "Complete user management endpoints",
+      "item": [
+        {
+          "name": "Create User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('test_user_id', response.user._id || response.user.id);",
+                  "    console.log('✅ Test user ID saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Test User Created by Admin\",\n  \"email\": \"admin.test.user@example.com\",\n  \"password\": \"TestPassword123!\",\n  \"phoneNumber\": \"+1234567890\",\n  \"role\": \"ngo\",\n  \"approvalStatus\": \"approved\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/create-user",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "create-user"]
+            },
+            "description": "Create new user as admin"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users?page=1&limit=10&role=ngo&approvalStatus=approved&search=test",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page"
+                },
+                {
+                  "key": "role",
+                  "value": "ngo",
+                  "description": "Filter by role"
+                },
+                {
+                  "key": "approvalStatus",
+                  "value": "approved",
+                  "description": "Filter by approval status"
+                },
+                {
+                  "key": "search",
+                  "value": "test",
+                  "description": "Search term"
+                }
+              ]
+            },
+            "description": "Get paginated list of users with filters"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/{{test_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "{{test_user_id}}"]
+            },
+            "description": "Get specific user details"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Updated User Name\",\n  \"phoneNumber\": \"+1987654321\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/{{test_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "{{test_user_id}}"]
+            },
+            "description": "Update user details"
+          },
+          "response": []
+        },
+        {
+          "name": "Edit User Details",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Updated Admin User\",\n  \"email\": \"updated.admin.user@example.com\",\n  \"phoneNumber\": \"+1111111111\",\n  \"role\": \"ngo\",\n  \"isActive\": true,\n  \"approvalStatus\": \"approved\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/{{test_user_id}}/details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "{{test_user_id}}", "details"]
+            },
+            "description": "Edit comprehensive user details"
+          },
+          "response": []
+        },
+        {
+          "name": "View User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/{{test_user_id}}/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "{{test_user_id}}", "profile"]
+            },
+            "description": "View complete user profile with activities and stats"
+          },
+          "response": []
+        },
+        {
+          "name": "Edit User Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ngoName\": \"Updated NGO Name\",\n  \"registrationNumber\": \"REG123456\",\n  \"address\": \"Updated Address\",\n  \"contactNumber\": \"+1234567890\",\n  \"website\": \"https://updated-ngo.org\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/{{test_user_id}}/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "{{test_user_id}}", "profile"]
+            },
+            "description": "Edit user's role-specific profile"
+          },
+          "response": []
+        },
+        {
+          "name": "Approve/Reject User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approvalStatus\": \"approved\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/{{test_user_id}}/approval",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "{{test_user_id}}", "approval"]
+            },
+            "description": "Approve or reject user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle User Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/{{test_user_id}}/toggle-status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "{{test_user_id}}", "toggle-status"]
+            },
+            "description": "Enable/disable user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/{{test_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "{{test_user_id}}"]
+            },
+            "description": "Delete user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User Completely",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/{{test_user_id}}/complete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "{{test_user_id}}", "complete"]
+            },
+            "description": "Delete user and all associated data completely"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏢 NGO Management",
+      "description": "NGO management endpoints",
+      "item": [
+        {
+          "name": "Get All NGOs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/ngos",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "ngos"]
+            },
+            "description": "Get list of all NGOs"
+          },
+          "response": []
+        },
+        {
+          "name": "Get NGO by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/ngos/{{test_ngo_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "ngos", "{{test_ngo_id}}"]
+            },
+            "description": "Get specific NGO details"
+          },
+          "response": []
+        },
+        {
+          "name": "Update NGO",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ngoName\": \"Updated NGO Name\",\n  \"address\": \"Updated Address\",\n  \"contactNumber\": \"+1234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/ngos/{{test_ngo_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "ngos", "{{test_ngo_id}}"]
+            },
+            "description": "Update NGO details"
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle NGO Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/ngos/{{test_ngo_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "ngos", "{{test_ngo_id}}", "status"]
+            },
+            "description": "Enable/disable NGO"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate NGO Share Link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/ngos/{{test_ngo_id}}/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "ngos", "{{test_ngo_id}}", "share"]
+            },
+            "description": "Generate shareable link for NGO profile"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete NGO",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/ngos/{{test_ngo_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "ngos", "{{test_ngo_id}}"]
+            },
+            "description": "Delete NGO"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏢 Company Management",
+      "description": "Company management endpoints",
+      "item": [
+        {
+          "name": "Get All Companies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/companies",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "companies"]
+            },
+            "description": "Get list of all companies"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Company by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/companies/{{test_company_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "companies", "{{test_company_id}}"]
+            },
+            "description": "Get specific company details"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Company",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Updated Company Name\",\n  \"companyAddress\": \"Updated Address\",\n  \"companyPhoneNumber\": \"+1234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/companies/{{test_company_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "companies", "{{test_company_id}}"]
+            },
+            "description": "Update company details"
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Company Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/companies/{{test_company_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "companies", "{{test_company_id}}", "status"]
+            },
+            "description": "Enable/disable company"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Company Share Link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/companies/{{test_company_id}}/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "companies", "{{test_company_id}}", "share"]
+            },
+            "description": "Generate shareable link for company profile"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Company",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/companies/{{test_company_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "companies", "{{test_company_id}}"]
+            },
+            "description": "Delete company"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📢 Campaign Management",
+      "description": "Campaign management endpoints",
+      "item": [
+        {
+          "name": "Get All Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns?status=Active&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "Active",
+                  "description": "Filter by status"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page"
+                }
+              ]
+            },
+            "description": "Get list of all campaigns with filters"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Campaign by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/{{test_campaign_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "{{test_campaign_id}}"]
+            },
+            "description": "Get specific campaign details"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Campaign",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('test_campaign_id', response.campaign._id || response._id);",
+                  "    console.log('✅ Test campaign ID saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Admin Created Campaign\",\n  \"description\": \"Test campaign created by admin\",\n  \"category\": \"Education\",\n  \"targetAmount\": 100000,\n  \"endDate\": \"2024-12-31\",\n  \"location\": \"Test Location\",\n  \"beneficiaries\": \"100 students\",\n  \"ngoId\": \"{{test_ngo_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns"]
+            },
+            "description": "Create new campaign as admin"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Campaign",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Campaign Title\",\n  \"description\": \"Updated campaign description\",\n  \"targetAmount\": 150000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/{{test_campaign_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "{{test_campaign_id}}"]
+            },
+            "description": "Update campaign details"
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Campaign Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/{{test_campaign_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "{{test_campaign_id}}", "status"]
+            },
+            "description": "Enable/disable campaign"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Campaign Share Link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/{{test_campaign_id}}/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "{{test_campaign_id}}", "share"]
+            },
+            "description": "Generate shareable link for campaign"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Campaign",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/{{test_campaign_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "{{test_campaign_id}}"]
+            },
+            "description": "Delete campaign"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📋 Notice Management",
+      "description": "Notice system endpoints",
+      "item": [
+        {
+          "name": "Create Notice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Notice\",\n  \"content\": \"This is a test notice from admin\",\n  \"type\": \"info\",\n  \"priority\": \"normal\",\n  \"targetRole\": \"all\",\n  \"sendEmail\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices"]
+            },
+            "description": "Create new notice"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Notices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices"]
+            },
+            "description": "Get list of all notices"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "⚙️ Settings Management",
+      "description": "System settings endpoints",
+      "item": [
+        {
+          "name": "Get Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "settings"]
+            },
+            "description": "Get all system settings"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"email\",\n  \"settings\": {\n    \"smtp_host\": \"smtp.example.com\",\n    \"smtp_port\": 587,\n    \"from_email\": \"noreply@example.com\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "settings"]
+            },
+            "description": "Update system settings"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📊 Reports & Analytics",
+      "description": "Reporting and analytics endpoints",
+      "item": [
+        {
+          "name": "NGO Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/ngos",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "ngos"]
+            },
+            "description": "Get NGO statistics and reports"
+          },
+          "response": []
+        },
+        {
+          "name": "Company Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/companies",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "companies"]
+            },
+            "description": "Get company statistics and reports"
+          },
+          "response": []
+        },
+        {
+          "name": "Campaign Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/campaigns",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "campaigns"]
+            },
+            "description": "Get campaign statistics and reports"
+          },
+          "response": []
+        },
+        {
+          "name": "Donation Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/donations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "donations"]
+            },
+            "description": "Get donation statistics and reports"
+          },
+          "response": []
+        },
+        {
+          "name": "Activity Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/activities",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "activities"]
+            },
+            "description": "Get user activity reports"
+          },
+          "response": []
+        },
+        {
+          "name": "Transaction Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "transactions"]
+            },
+            "description": "Get transaction reports"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "console.log('🔍 Testing Admin Endpoint:', pm.request.url.toString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "console.log('📊 Response Status:', pm.response.code);",
+          "",
+          "pm.test('Response time is reasonable', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});",
+          "",
+          "pm.test('Response has valid JSON', function () {",
+          "    try {",
+          "        pm.response.json();",
+          "    } catch (e) {",
+          "        pm.expect.fail('Response is not valid JSON');",
+          "    }",
+          "});",
+          "",
+          "if (pm.response.code === 401) {",
+          "    console.log('❌ Authentication required - make sure admin token is set');",
+          "}",
+          "",
+          "if (pm.response.code === 403) {",
+          "    console.log('❌ Admin privileges required for this endpoint');",
+          "}"
+        ]
+      }
+    }
+  ]
+}

@@ -1,52 +1,60 @@
-const mongoose = require('mongoose');
-const logger = require('../utils/logger');
 
-const connectDB = async () => {
+const mongoose = require("mongoose");
+
+const connectDB = async (retries = 5) => {
     try {
-        // ✅ Use environment variable or fallback to localhost
-        const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/backend';
-
-        const options = {
-            maxPoolSize: 10,
-            serverSelectionTimeoutMS: 30000,
+        const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/donation_platform';
+        
+        if (!process.env.MONGO_URI) {
+            console.log('⚠️ MONGO_URI not found in environment variables, using default local MongoDB');
+        }
+        
+        const conn = await mongoose.connect(mongoUri, {
+            serverSelectionTimeoutMS: 5000,
             socketTimeoutMS: 45000,
-        };
+            maxPoolSize: 10,
+            bufferCommands: false,
+        });
 
-        const conn = await mongoose.connect(mongoURI, options);
-        logger.info(`✅ MongoDB Connected: ${conn.connection.host}`);
+        console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
 
-        // Connection events
+        // Connection event handlers
         mongoose.connection.on('error', (err) => {
-            logger.error('❌ MongoDB connection error:', err);
+            console.error('MongoDB connection error:', err);
         });
 
         mongoose.connection.on('disconnected', () => {
-            logger.warn('⚠️ MongoDB disconnected');
+            console.log('MongoDB disconnected. Attempting to reconnect...');
+            if (retries > 0) {
+                setTimeout(() => connectDB(retries - 1), 5000);
+            }
         });
 
         mongoose.connection.on('reconnected', () => {
-            logger.info('🔁 MongoDB reconnected');
-        });
-
-        // Graceful shutdown
-        process.on('SIGINT', async () => {
-            try {
-                await mongoose.connection.close();
-                logger.info('🔌 MongoDB connection closed through app termination');
-                process.exit(0);
-            } catch (error) {
-                logger.error('❌ Error closing MongoDB connection:', error);
-                process.exit(1);
-            }
+            console.log('MongoDB reconnected successfully');
         });
 
         return conn;
 
     } catch (error) {
-        logger.error('❌ Database connection failed:', error);
-        logger.info('📌 Note: Make sure MongoDB is running on your local system.');
-        process.exit(1);
+        console.error("❌ MongoDB Connection Error:", error);
+        if (retries > 0) {
+            console.log(`Retrying connection... (${retries} attempts remaining)`);
+            setTimeout(() => connectDB(retries - 1), 5000);
+        } else {
+            console.error("❌ Failed to connect to MongoDB after all retries");
+            process.exit(1);
+        }
     }
 };
 
-module.exports = connectDB;
+const gracefulShutdown = async () => {
+    try {
+        await mongoose.connection.close();
+        console.log('MongoDB connection closed gracefully');
+    } catch (error) {
+        console.error('Error closing MongoDB connection:', error);
+    }
+};
+
+module.exports = { connectDB, gracefulShutdown };

@@ -1,133 +1,92 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Basic Meta Tags -->
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CharityPlus - Empowering Change</title>
-
-    <!-- SEO & Social Sharing Meta Tags -->
-    <meta name="description" content="CharityPlus is a modern donation platform connecting donors, NGOs, and companies for transparent and impactful charitable giving." />
-    <meta name="keywords" content="charity, donation, non-profit, ngo, fundraising, philanthropy, social good" />
-    <meta name="author" content="CharityPlus" />
-    <meta name="theme-color" content="#0a60c8">
-
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://charityplus.app" />
-    <meta property="og:title" content="CharityPlus - Empowering Change" />
-    <meta property="og:description" content="Join a global movement dedicated to making a tangible impact on the world's most pressing issues." />
-    <meta property="og:image" content="https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?q=80&w=1200&auto=format&fit=crop" />
-
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://charityplus.app" />
-    <meta property="twitter:title" content="CharityPlus - Empowering Change" />
-    <meta property="twitter:description" content="Join a global movement dedicated to making a tangible impact on the world's most pressing issues." />
-    <meta property="twitter:image" content="https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?q=80&w=1200&auto=format&fit=crop" />
-
-    <!-- Favicon (Embedded SVG for crisp look and no extra requests) -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💙</text></svg>">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💙</text></svg>">
-
-    <!-- Performance & Resource Hints -->
+    <title>Support Verified Causes | Donation Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://esm.sh">
-    <link rel="preconnect" href="https://unpkg.com">
-    
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Tailwind CSS (CDN for rapid development) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
-        // Tailwind CSS Configuration
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            DEFAULT: '#0a60c8', // A richer, slightly more subdued blue
-                            light: '#3b82f6',
-                            dark: '#084b9e',
-                        },
-                        secondary: {
-                            DEFAULT: '#10b981', // A vibrant, hopeful teal/green
-                            light: '#34d399',
-                            dark: '#059669',
-                        },
-                        accent: {
-                           DEFAULT: '#f59e0b', // A warm, engaging amber
-                           dark: '#d97706'
-                        },
-                        background: '#fcfdff', // A very soft, slightly warm off-white
-                        surface: '#ffffff',    // Pure White for cards and surfaces
-                        border: '#e5e7eb',     // A neutral light gray border
-                        'text-primary': '#1f2937', // A strong, dark slate for text
-                        'text-secondary': '#6b7280', // A softer gray for secondary text
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        display: ['Poppins', 'sans-serif'],
-                    },
-                     boxShadow: {
-                        'serene': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.04)',
-                        'serene-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05)',
-                     },
-                    animation: {
-                        'fade-in': 'fade-in 0.6s ease-out forwards',
-                        'slide-in-up': 'slide-in-up 0.7s cubic-bezier(0.25, 1, 0.5, 1) forwards',
-                        'slide-in-down': 'slide-in-down 0.7s cubic-bezier(0.25, 1, 0.5, 1) forwards',
-                        'slow-zoom': 'slow-zoom 15s ease-in-out infinite alternate',
-                    },
-                    keyframes: {
-                        'fade-in': {
-                            'from': { opacity: '0' },
-                            'to': { opacity: '1' },
-                        },
-                        'slide-in-up': {
-                            'from': { opacity: '0', transform: 'translateY(20px)' },
-                            'to': { opacity: '1', transform: 'translateY(0)' },
-                        },
-                         'slide-in-down': {
-                            'from': { opacity: '0', transform: 'translateY(-20px)' },
-                            'to': { opacity: '1', transform: 'translateY(0)' },
-                        },
-                        'slow-zoom': {
-                            'from': { transform: 'scale(1)' },
-                            'to': { transform: 'scale(1.1)' },
-                        }
-                    },
-                },
+      tailwind.config = {
+        darkMode: 'class', // Enable dark mode
+        theme: {
+          extend: {
+            colors: {
+              'brand-deep-blue': '#003f5c',
+              'brand-royal-navy': '#2f4b7c',
+              'brand-gold': '#ffa600',
+              'brand-light': '#f7f7f7',
+              'brand-dark': '#1a202c',
+              'brand-dark-200': '#2d3748',
+              // map old colors for easier transition
+              'navy-blue': 'var(--color-primary)',
+              'sky-blue': 'var(--color-accent)',
+              'warm-gray': {
+                'DEFAULT': 'var(--color-bg-secondary)',
+                '100': 'var(--color-bg-secondary)',
+                '200': 'var(--color-border)',
+                '600': 'var(--color-text-secondary)',
+                '700': 'var(--color-text-primary)',
+                '900': 'var(--color-text-headings)',
+              }
             },
-        };
+            fontFamily: {
+              'serif': ['Merriweather', 'serif'],
+              'sans': ['Poppins', 'sans-serif']
+            }
+          }
+        }
+      }
     </script>
-    
-    <!-- JavaScript Dependencies via Import Map (ESM) -->
-    <script type="importmap">
+<script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@18.2.0",
-    "react/": "https://esm.sh/react@18.2.0/",
-    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
-    "react-dom": "https://esm.sh/react-dom@18.2.0",
-    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
-    "react-router-dom": "https://esm.sh/react-router-dom@6.22.3?external=react",
-    "recharts": "https://esm.sh/recharts@2.12.6?external=react,react-dom"
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.6.3",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react-icons/": "https://esm.sh/react-icons@^5.5.0/",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "chart.js": "https://esm.sh/chart.js@^4.4.3",
+    "react-chartjs-2": "https://esm.sh/react-chartjs-2@^5.2.0",
+    "framer-motion": "https://esm.sh/framer-motion@^11.3.19",
+    "@google/genai": "https://esm.sh/@google/genai@^1.9.0"
   }
 }
 </script>
+<style>
+  :root {
+    --color-primary: #003f5c;
+    --color-accent: #ffa600;
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f7f7f7;
+    --color-text-primary: #2d3748;
+    --color-text-secondary: #4a5568;
+    --color-text-headings: #003f5c;
+    --color-border: #e2e8f0;
+  }
+  .dark {
+    --color-primary: #2f4b7c;
+    --color-accent: #ffa600;
+    --color-bg-primary: #1a202c;
+    --color-bg-secondary: #2d3748;
+    --color-text-primary: #f7fafc;
+    --color-text-secondary: #a0aec0;
+    --color-text-headings: #ffffff;
+    --color-border: #4a5568;
+  }
+  body {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+  }
+</style>
+<link rel="stylesheet" href="/index.css">
 </head>
-<body class="bg-background text-text-primary font-sans antialiased">
+<body>
     <div id="root"></div>
-    
-    <!-- Main Application Bundle -->
     <script type="module" src="/index.tsx"></script>
-    
-    <!-- Icons (Ionicons) - deferred for non-blocking load -->
-    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js" defer></script>
-    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js" defer></script>
 </body>
 </html>

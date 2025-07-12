@@ -1,0 +1,264 @@
+
+{
+  "info": {
+    "name": "Share Links API Collection",
+    "description": "API collection for testing share link functionality",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://0.0.0.0:5000",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NzEzM2Y5NGFhODY5YTRmYjk2N2E2MyIsInVzZXJJZCI6IjY4NzEzM2Y5NGFhODY5YTRmYjk2N2E2MyIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1MjMwMjY1NiwiZXhwIjoxNzUyMzg5MDU2fQ.JCNGZ5JV0TQNCOgeCVHdjKLIfNPDauInZ6d10t7IIr0",
+      "type": "string"
+    },
+    {
+      "key": "company_id",
+      "value": "687134b94aa869a4fb967a7c",
+      "type": "string"
+    },
+    {
+      "key": "ngo_id",
+      "value": "6871e77eee061f384becdc35",
+      "type": "string"
+    },
+    {
+      "key": "campaign_id",
+      "value": "campaign123",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔗 Share Links Generation",
+      "item": [
+        {
+          "name": "Generate Company Share Link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/companies/{{company_id}}/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "companies", "{{company_id}}", "share"]
+            },
+            "description": "Generate a shareable link for a company profile"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/companies/{{company_id}}/share",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "admin", "companies", "{{company_id}}", "share"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"message\": \"Share link generated\",\n  \"shareLink\": \"http://localhost:5173/share/profile/[generated_share_id]\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Generate NGO Share Link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/ngos/{{ngo_id}}/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "ngos", "{{ngo_id}}", "share"]
+            },
+            "description": "Generate a shareable link for an NGO profile"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/ngos/{{ngo_id}}/share",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "admin", "ngos", "{{ngo_id}}", "share"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"message\": \"Share link generated\",\n  \"shareLink\": \"http://localhost:5173/share/profile/[generated_share_id]\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Generate Campaign Share Link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/{{campaign_id}}/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "{{campaign_id}}", "share"]
+            },
+            "description": "Generate a shareable link for a campaign"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/campaigns/{{campaign_id}}/share",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "admin", "campaigns", "{{campaign_id}}", "share"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"message\": \"Share link generated\",\n  \"shareLink\": \"http://localhost:5173/share/campaign/[generated_share_id]\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🌐 Public Share Access",
+      "item": [
+        {
+          "name": "Access Shared Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/share/profile/:shareId",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "share", "profile", ":shareId"],
+              "variable": [
+                {
+                  "key": "shareId",
+                  "value": "sample_share_id",
+                  "description": "Replace with actual share ID"
+                }
+              ]
+            },
+            "description": "Access a shared profile using share ID"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/public/share/profile/:shareId",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "public", "share", "profile", ":shareId"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"type\": \"ngo\",\n    \"profile\": {\n      \"_id\": \"6871e77eee061f384becdc35\",\n      \"ngoName\": \"Help Children Foundation\",\n      \"email\": \"contact@helpchildren.org\"\n    },\n    \"viewCount\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Access Shared Campaign",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/share/campaign/:shareId",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "share", "campaign", ":shareId"],
+              "variable": [
+                {
+                  "key": "shareId",
+                  "value": "sample_share_id",
+                  "description": "Replace with actual share ID"
+                }
+              ]
+            },
+            "description": "Access a shared campaign using share ID"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/public/share/campaign/:shareId",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "public", "share", "campaign", ":shareId"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"campaign\": {\n      \"_id\": \"campaign123\",\n      \"title\": \"Education for All Children\",\n      \"description\": \"Providing quality education to underprivileged children\",\n      \"targetAmount\": 500000,\n      \"raisedAmount\": 125000\n    },\n    \"viewCount\": 1\n  }\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

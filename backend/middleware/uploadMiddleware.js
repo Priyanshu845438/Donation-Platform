@@ -1,98 +1,81 @@
-const { upload, handleMulterError } = require('../config/multerConfig');
-const logger = require('../utils/logger');
 
-/**
- * Single file upload middleware
- */
-const singleFileUpload = (fieldName) => {
-    return [
-        upload.single(fieldName),
-        handleMulterError,
-        (req, res, next) => {
-            if (req.file) {
-                logger.info(`File uploaded: ${req.file.filename}`);
-            }
-            next();
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+
+// Ensure upload directories exist
+const ensureDirectoryExists = (dirPath) => {
+    if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+    }
+};
+
+// Storage configuration
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        let uploadPath = 'uploads/';
+        
+        // Determine upload path based on file field and user role
+        switch (file.fieldname) {
+            case 'profileImage':
+            case 'companyLogo':
+            case 'ngoLogo':
+                uploadPath += 'profile/';
+                break;
+            case 'campaignImage':
+                uploadPath += 'campaign/image/';
+                break;
+            case 'campaignProof':
+                uploadPath += 'campaign/proof/';
+                break;
+            case 'documents':
+                uploadPath += 'documents/';
+                break;
+            default:
+                uploadPath += 'general/';
         }
-    ];
+
+        ensureDirectoryExists(uploadPath);
+        cb(null, uploadPath);
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const fileName = file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname);
+        cb(null, fileName);
+    }
+});
+
+// File filter
+const fileFilter = (req, file, cb) => {
+    // Define allowed file types for different fields
+    const allowedTypes = {
+        profileImage: /jpeg|jpg|png|gif/,
+        companyLogo: /jpeg|jpg|png|gif|svg/,
+        ngoLogo: /jpeg|jpg|png|gif|svg/,
+        campaignImage: /jpeg|jpg|png|gif/,
+        campaignProof: /jpeg|jpg|png|pdf/,
+        documents: /pdf|doc|docx|jpeg|jpg|png/
+    };
+
+    const allowedType = allowedTypes[file.fieldname] || /jpeg|jpg|png|pdf/;
+    const extname = allowedType.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedType.test(file.mimetype);
+
+    if (mimetype && extname) {
+        return cb(null, true);
+    } else {
+        cb(new Error(`Invalid file type for ${file.fieldname}. Allowed types: ${allowedType}`));
+    }
 };
 
-/**
- * Multiple files upload middleware
- */
-const multipleFilesUpload = (fieldName, maxCount = 5) => {
-    return [
-        upload.array(fieldName, maxCount),
-        handleMulterError,
-        (req, res, next) => {
-            if (req.files && req.files.length > 0) {
-                logger.info(`${req.files.length} files uploaded`);
-            }
-            next();
-        }
-    ];
-};
+// Configure multer
+const upload = multer({
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB limit
+        files: 5 // Maximum 5 files
+    }
+});
 
-/**
- * Fields upload middleware for mixed file types
- */
-const fieldsUpload = (fields) => {
-    return [
-        upload.fields(fields),
-        handleMulterError,
-        (req, res, next) => {
-            if (req.files) {
-                const fileCount = Object.keys(req.files).reduce((total, key) => {
-                    return total + req.files[key].length;
-                }, 0);
-                logger.info(`${fileCount} files uploaded across multiple fields`);
-            }
-            next();
-        }
-    ];
-};
-
-/**
- * Profile image upload middleware
- */
-const profileImageUpload = singleFileUpload('profileImage');
-
-/**
- * Company logo upload middleware
- */
-const companyLogoUpload = singleFileUpload('companyLogo');
-
-/**
- * NGO logo upload middleware
- */
-const ngoLogoUpload = singleFileUpload('ngoLogo');
-
-/**
- * Campaign images upload middleware
- */
-const campaignImagesUpload = multipleFilesUpload('campaignImages', 5);
-
-/**
- * Campaign documents upload middleware
- */
-const campaignDocumentsUpload = multipleFilesUpload('campaignDocuments', 3);
-
-/**
- * Mixed campaign files upload middleware
- */
-const campaignFilesUpload = fieldsUpload([
-    { name: 'campaignImages', maxCount: 5 },
-    { name: 'campaignDocuments', maxCount: 3 }
-]);
-
-module.exports = {
-    singleFileUpload,
-    multipleFilesUpload,
-    fieldsUpload,
-    profileImageUpload,
-    companyLogoUpload,
-    ngoLogoUpload,
-    campaignImagesUpload,
-    campaignDocumentsUpload,
-    campaignFilesUpload
-};
+module.exports = upload;

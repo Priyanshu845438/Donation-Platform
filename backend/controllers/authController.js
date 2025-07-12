@@ -1,471 +1,475 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const Company = require('../models/Company');
-const NGO = require('../models/NGO');
-const logger = require('../utils/logger');
-const { validateEmail, validatePassword, validatePhone } = require('../utils/validators');
-const { sanitizeInput } = require('../utils/sanitizer');
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const Company = require("../models/Company");
+const NGO = require("../models/NGO");
+const Activity = require("../models/Activity");
+const Settings = require("../models/Settings");
+const nodemailer = require("nodemailer");
+const crypto = require("crypto");
+const { validateEmail, validatePassword, validatePhoneNumber } = require("../utils/validators");
+const { createErrorResponse, createSuccessResponse } = require("../utils/errorHandler");
 
-/**
- * User registration
- */
-exports.register = async (req, res) => {
-    try {
-        const { fullName, email, phoneNumber, password, role } = req.body;
+class AuthController {
+    // Enhanced registration with approval system
+    static async register(req, res) {
+        try {
+            const { fullName, email, password, phoneNumber, role } = req.body;
 
-        // Sanitize inputs
-        const sanitizedData = {
-            fullName: sanitizeInput(fullName),
-            email: sanitizeInput(email).toLowerCase(),
-            phoneNumber: sanitizeInput(phoneNumber),
-            role: sanitizeInput(role).toLowerCase()
-        };
-
-        // Validate inputs
-        if (!sanitizedData.fullName || !sanitizedData.email || !sanitizedData.phoneNumber || !password || !sanitizedData.role) {
-            return res.status(400).json({
-                success: false,
-                message: 'All fields are required'
-            });
-        }
-
-        if (!validateEmail(sanitizedData.email)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid email format'
-            });
-        }
-
-        if (!validatePassword(password)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character'
-            });
-        }
-
-        if (!validatePhone(sanitizedData.phoneNumber)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid phone number format'
-            });
-        }
-
-        const allowedRoles = process.env.NODE_ENV === 'development' 
-            ? ['user', 'company', 'ngo', 'admin'] 
-            : ['user', 'company', 'ngo'];
-        if (!allowedRoles.includes(sanitizedData.role)) {
-            return res.status(400).json({
-                success: false,
-                message: `Invalid role. Must be ${allowedRoles.join(', ')}`
-            });
-        }
-
-        // Check if user already exists
-        const existingUser = await User.findOne({ email: sanitizedData.email });
-        if (existingUser) {
-            return res.status(409).json({
-                success: false,
-                message: 'User already exists with this email'
-            });
-        }
-
-        // Get client IP and user agent (password will be hashed by pre-save middleware)
-        const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
-        const userAgent = req.get('User-Agent') || 'unknown';
-
-        // Create user
-        const newUser = await User.create({
-            fullName: sanitizedData.fullName,
-            email: sanitizedData.email,
-            phoneNumber: sanitizedData.phoneNumber,
-            password: password, // Let the pre-save middleware handle hashing
-            role: sanitizedData.role,
-            isActive: true,
-            metadata: {
-                registrationIp: clientIp,
-                userAgent: userAgent,
-                referralSource: 'direct'
+            // Validate required fields
+            if (!fullName || !email || !password || !phoneNumber || !role) {
+                return createErrorResponse(res, 400, "All fields are required");
             }
-        });
 
-        let profileData = null;
+            // Validate input formats
+            if (!validateEmail(email)) {
+                return createErrorResponse(res, 400, "Invalid email format");
+            }
 
-        // Create role-specific profile
-        if (sanitizedData.role === 'company') {
-            profileData = await Company.create({
-                userId: newUser._id,
-                companyName: sanitizedData.fullName,
-                companyEmail: sanitizedData.email,
-                companyPhoneNumber: sanitizedData.phoneNumber,
-                registrationNumber: 'Pending',
-                companyAddress: 'Not provided',
-                ceoName: 'Not provided',
-                ceoContactNumber: 'Not provided',
-                ceoEmail: 'Not provided',
-                companyType: 'Other',
-                numberOfEmployees: 1,
-                companyLogo: '',
-                isActive: true
+            if (!validatePassword(password)) {
+                return createErrorResponse(res, 400, "Password must be at least 8 characters with uppercase, lowercase, number, and special character");
+            }
+
+            if (!validatePhoneNumber(phoneNumber)) {
+                return createErrorResponse(res, 400, "Invalid phone number format");
+            }
+
+            // Check if user already exists
+            const existingUser = await User.findOne({ email });
+            if (existingUser) {
+                return createErrorResponse(res, 400, "User already exists with this email");
+            }
+
+            // Get settings for auto-approval
+            const generalSettings = await Settings.findOne({ category: "general" });
+            const autoApprove = generalSettings?.settings?.get("auto_approve_users") || false;
+
+            // Hash password
+            const hashedPassword = await bcrypt.hash(password, 12);
+
+            // Create user
+            const newUser = new User({
+                fullName,
+                email,
+                password: hashedPassword,
+                phoneNumber,
+                role: role.toLowerCase(),
+                isVerified: false,
+                isActive: autoApprove,
+                approvalStatus: autoApprove ? "approved" : "pending"
             });
-        } else if (sanitizedData.role === 'ngo') {
-            profileData = await NGO.create({
+
+            await newUser.save();
+
+            // Create role-specific profile
+            let profileData = null;
+            if (role.toLowerCase() === "ngo") {
+                profileData = await this.createNGOProfile(newUser, { fullName, email, phoneNumber });
+            } else if (role.toLowerCase() === "company") {
+                profileData = await this.createCompanyProfile(newUser, { fullName, email, phoneNumber });
+            }
+
+            // Log activity
+            await Activity.create({
                 userId: newUser._id,
-                ngoName: sanitizedData.fullName,
-                email: sanitizedData.email,
-                contactNumber: sanitizedData.phoneNumber,
-                registrationNumber: 'Pending',
-                registeredYear: new Date().getFullYear(),
-                address: {
-                    street: '',
-                    city: '',
-                    state: '',
-                    postalCode: '',
-                    country: 'India'
-                },
-                website: '', // Empty string is valid, "Not provided" fails validation
-                authorizedPerson: {
-                    name: 'Not provided',
-                    phone: '9999999999', // Valid phone format instead of "Not provided"
-                    email: 'not-provided@example.com', // Valid email format
-                    designation: 'Director'
-                },
-                panNumber: 'Not provided',
-                tanNumber: 'Not provided',
-                gstNumber: 'Not provided',
-                numberOfEmployees: 1,
-                ngoType: 'Trust',
-                is80GCertified: false,
-                is12ACertified: false,
-                fcraRegistered: false,
-                bankDetails: {
-                    accountHolderName: 'Not provided',
-                    accountNumber: 'Not provided',
-                    ifscCode: 'Not provided',
-                    bankName: 'Not provided',
-                    branchName: 'Not provided',
-                    accountType: 'Current'
-                },
-                workingAreas: [],
-                targetBeneficiaries: [],
-                logo: '',
-                isActive: true
+                action: "user_registration",
+                description: `User registered with role: ${role}`,
+                metadata: { role, email }
             });
-        }
 
-        logger.info(`User registered successfully: ${sanitizedData.email} (${sanitizedData.role})`);
+            // Send confirmation email
+            await this.sendRegistrationEmail(newUser, autoApprove);
 
-        res.status(201).json({
-            success: true,
-            message: 'User registered successfully',
-            data: {
+            return createSuccessResponse(res, 201, {
+                message: autoApprove ? "Registration successful" : "Registration successful. Please wait for admin approval.",
                 user: {
                     id: newUser._id,
                     fullName: newUser.fullName,
                     email: newUser.email,
-                    phoneNumber: newUser.phoneNumber,
                     role: newUser.role,
-                    createdAt: newUser.createdAt
+                    approvalStatus: newUser.approvalStatus
                 },
                 profile: profileData
-            }
-        });
+            });
 
-    } catch (error) {
-        logger.error('Registration error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Registration failed',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
+        } catch (error) {
+            console.error("Registration error:", error);
+            return createErrorResponse(res, 500, "Registration failed", error.message);
+        }
     }
-};
 
-/**
- * User login
- */
-exports.login = async (req, res) => {
-    try {
-        const { email, password } = req.body;
+    // Enhanced login with approval check
+    static async login(req, res) {
+        try {
+            const { email, password } = req.body;
 
-        // Sanitize inputs
-        const sanitizedEmail = sanitizeInput(email).toLowerCase();
+            if (!email || !password) {
+                return createErrorResponse(res, 400, "Email and password are required");
+            }
 
-        // Validate inputs
-        if (!sanitizedEmail || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Email and password are required'
+            // Find user
+            const user = await User.findOne({ email });
+            if (!user) {
+                return createErrorResponse(res, 400, "Invalid credentials");
+            }
+
+            // Check password
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                return createErrorResponse(res, 400, "Invalid credentials");
+            }
+
+            // Check approval status
+            if (user.approvalStatus === "pending") {
+                return createErrorResponse(res, 403, "Your account is pending approval from admin");
+            }
+
+            if (user.approvalStatus === "rejected") {
+                return createErrorResponse(res, 403, "Your account has been rejected by admin");
+            }
+
+            // Check if user is active
+            if (!user.isActive) {
+                return createErrorResponse(res, 403, "Your account has been deactivated");
+            }
+
+            // Generate JWT token
+            const token = jwt.sign(
+                { id: user._id, role: user.role },
+                process.env.JWT_SECRET,
+                { expiresIn: "24h" }
+            );
+
+            // Update last login
+            user.lastLogin = new Date();
+            await user.save();
+
+            // Log activity
+            await Activity.create({
+                userId: user._id,
+                action: "user_login",
+                description: "User logged in successfully"
             });
-        }
 
-        if (!validateEmail(sanitizedEmail)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid email format'
-            });
-        }
-
-        // Find user (include password for login verification)
-        const user = await User.findOne({ email: sanitizedEmail }).select('+password');
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid credentials'
-            });
-        }
-
-        // Check if user is active
-        if (!user.isActive) {
-            return res.status(403).json({
-                success: false,
-                message: 'Account is deactivated. Please contact support.'
-            });
-        }
-
-        // Verify password
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid credentials'
-            });
-        }
-
-        // Generate JWT token
-        const token = jwt.sign(
-            { userId: user._id, email: user.email, role: user.role },
-            process.env.JWT_SECRET,
-            { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
-        );
-
-        // Update last login
-        await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
-
-        logger.info(`User logged in successfully: ${sanitizedEmail}`);
-
-        res.status(200).json({
-            success: true,
-            message: 'Login successful',
-            data: {
+            return createSuccessResponse(res, 200, {
+                message: "Login successful",
                 token,
                 user: {
                     id: user._id,
                     fullName: user.fullName,
                     email: user.email,
-                    phoneNumber: user.phoneNumber,
                     role: user.role,
-                    createdAt: user.createdAt,
-                    lastLogin: new Date()
+                    isVerified: user.isVerified,
+                    lastLogin: user.lastLogin
                 }
-            }
-        });
-
-    } catch (error) {
-        logger.error('Login error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Login failed',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
-};
-
-/**
- * Get user profile
- */
-exports.getProfile = async (req, res) => {
-    try {
-        const userId = req.user.id;
-
-        const user = await User.findById(userId).select('-password');
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
             });
+
+        } catch (error) {
+            console.error("Login error:", error);
+            return createErrorResponse(res, 500, "Login failed", error.message);
         }
+    }
 
-        let profileData = null;
+    // Get user profile
+    static async getProfile(req, res) {
+        try {
+            const userId = req.user.id;
+            const role = req.user.role;
 
-        // Get role-specific profile
-        if (user.role === 'company') {
-            profileData = await Company.findOne({ userId });
-        } else if (user.role === 'ngo') {
-            profileData = await NGO.findOne({ userId });
-        }
+            let profileData = null;
+            if (role === "ngo") {
+                profileData = await NGO.findOne({ userId }).populate("userId", "-password");
+            } else if (role === "company") {
+                profileData = await Company.findOne({ userId }).populate("userId", "-password");
+            } else {
+                profileData = await User.findById(userId).select("-password");
+            }
 
-        res.status(200).json({
-            success: true,
-            data: {
-                user,
+            if (!profileData) {
+                return createErrorResponse(res, 404, "Profile not found");
+            }
+
+            return createSuccessResponse(res, 200, {
+                message: "Profile retrieved successfully",
                 profile: profileData
-            }
-        });
-
-    } catch (error) {
-        logger.error('Get profile error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch profile',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
-};
-
-/**
- * Update user profile
- */
-exports.updateProfile = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const updates = req.body;
-
-        // Remove sensitive fields
-        delete updates.password;
-        delete updates.role;
-        delete updates.email;
-        delete updates.createdAt;
-        delete updates.updatedAt;
-
-        // Sanitize inputs
-        const sanitizedUpdates = {};
-        for (const key in updates) {
-            if (updates[key] !== undefined && updates[key] !== null) {
-                sanitizedUpdates[key] = sanitizeInput(updates[key]);
-            }
-        }
-
-        // Validate phone number if provided
-        if (sanitizedUpdates.phoneNumber && !validatePhone(sanitizedUpdates.phoneNumber)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid phone number format'
             });
-        }
 
-        const user = await User.findByIdAndUpdate(
-            userId,
-            { ...sanitizedUpdates, updatedAt: new Date() },
-            { new: true }
-        ).select('-password');
+        } catch (error) {
+            console.error("Get profile error:", error);
+            return createErrorResponse(res, 500, "Failed to retrieve profile", error.message);
+        }
+    }
+
+    // Update profile
+    static async updateProfile(req, res) {
+        try {
+            const userId = req.user.id;
+            const role = req.user.role;
+            const updateData = req.body;
+
+            // Handle file upload
+            if (req.file) {
+                updateData.profileImage = `/uploads/profile/${req.file.filename}`;
+            }
+
+            let updatedProfile = null;
+            if (role === "ngo") {
+                updatedProfile = await NGO.findOneAndUpdate(
+                    { userId },
+                    updateData,
+                    { new: true, runValidators: true }
+                );
+            } else if (role === "company") {
+                updatedProfile = await Company.findOneAndUpdate(
+                    { userId },
+                    updateData,
+                    { new: true, runValidators: true }
+                );
+            }
+
+            if (!updatedProfile) {
+                return createErrorResponse(res, 404, "Profile not found");
+            }
+
+            // Log activity
+            await Activity.create({
+                userId,
+                action: "profile_update",
+                description: "User updated their profile"
+            });
+
+            return createSuccessResponse(res, 200, {
+                message: "Profile updated successfully",
+                profile: updatedProfile
+            });
+
+        } catch (error) {
+            console.error("Update profile error:", error);
+            return createErrorResponse(res, 500, "Failed to update profile", error.message);
+        }
+    }
+
+    // Create NGO profile
+    static async createNGOProfile(user, userData) {
+        try {
+            const newNGO = await NGO.create({
+                userId: user._id,
+                ngoName: userData.fullName,
+                email: userData.email,
+                contactNumber: userData.phoneNumber,
+                isActive: true,
+                // Ensure sparse unique fields are not set to undefined
+                panNumber: null,
+                tanNumber: null,
+                gstNumber: null,
+                authorizedPerson: {
+                    name: null,
+                    phone: null,
+                    email: null
+                },
+                bankDetails: {
+                    accountHolderName: null,
+                    accountNumber: null,
+                    ifscCode: null,
+                    bankName: null,
+                    branchName: null
+                }
+            });
+            return newNGO;
+        } catch (error) {
+            console.error("NGO profile creation error:", error);
+            throw error;
+        }
+    }
+
+    // Create Company profile
+    static async createCompanyProfile(user, userData) {
+        try {
+            const newCompany = await Company.create({
+                userId: user._id,
+                companyName: userData.fullName,
+                companyEmail: userData.email,
+                companyPhoneNumber: userData.phoneNumber,
+                isActive: true
+            });
+            return newCompany;
+        } catch (error) {
+            console.error("Company profile creation error:", error);
+            throw error;
+        }
+    }
+
+    // Send registration email
+    static async sendRegistrationEmail(user, autoApprove) {
+        try {
+            const emailSettings = await Settings.findOne({ category: "email" });
+            if (!emailSettings) return;
+
+            const transporter = nodemailer.createTransporter({
+                host: emailSettings.settings.get("smtp_host"),
+                port: emailSettings.settings.get("smtp_port"),
+                secure: emailSettings.settings.get("smtp_secure"),
+                auth: {
+                    user: process.env.EMAIL_ID,
+                    pass: process.env.EMAIL_PASS
+                }
+            });
+
+            const subject = autoApprove ? "Welcome to Donation Platform" : "Registration Pending Approval";
+            const message = autoApprove 
+                ? `Welcome ${user.fullName}! Your account has been activated.`
+                : `Hello ${user.fullName}! Your registration is pending admin approval.`;
+
+            await transporter.sendMail({
+                from: emailSettings.settings.get("from_email"),
+                to: user.email,
+                subject,
+                text: message
+            });
+        } catch (error) {
+            console.error("Email sending error:", error);
+        }
+    }
+
+    // Other methods (logout, verifyToken, etc.) continue...
+    static async logout(req, res) {
+        try {
+            await Activity.create({
+                userId: req.user.id,
+                action: "user_logout",
+                description: "User logged out"
+            });
+
+            return createSuccessResponse(res, 200, { message: "Logout successful" });
+        } catch (error) {
+            return createErrorResponse(res, 500, "Logout failed", error.message);
+        }
+    }
+
+    static async verifyToken(req, res) {
+        try {
+            const token = req.header("Authorization")?.replace("Bearer ", "");
+            if (!token) {
+                return createErrorResponse(res, 401, "No token provided");
+            }
+
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const user = await User.findById(decoded.id).select("-password");
+
+            if (!user) {
+                return createErrorResponse(res, 401, "Invalid token");
+            }
+
+            return createSuccessResponse(res, 200, {
+                message: "Token is valid",
+                user: {
+                    id: user._id,
+                    fullName: user.fullName,
+                    email: user.email,
+                    role: user.role,
+                    isVerified: user.isVerified
+                }
+            });
+
+        } catch (error) {
+            return createErrorResponse(res, 401, "Invalid token");
+        }
+    }
+
+    static async getUserActivity(req, res) {
+        try {
+            const activities = await Activity.find({ userId: req.user.id })
+                .sort({ createdAt: -1 })
+                .limit(50);
+
+            return createSuccessResponse(res, 200, {
+                message: "Activities retrieved successfully",
+                activities
+            });
+        } catch (error) {
+            return createErrorResponse(res, 500, "Failed to retrieve activities", error.message);
+        }
+    }
+
+    // Add other methods like forgotPassword, resetPassword, changePassword, deleteProfile
+}
+
+// Get user profile
+const getProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password');
 
         if (!user) {
             return res.status(404).json({
-                success: false,
                 message: 'User not found'
             });
         }
 
-        logger.info(`Profile updated for user: ${userId}`);
-
-        res.status(200).json({
-            success: true,
-            message: 'Profile updated successfully',
-            data: user
+        res.json({
+            message: 'Profile retrieved successfully',
+            user
         });
-
     } catch (error) {
-        logger.error('Update profile error:', error);
         res.status(500).json({
-            success: false,
-            message: 'Failed to update profile',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            message: 'Error retrieving profile',
+            error: error.message
         });
     }
 };
 
-/**
- * Change password
- */
-exports.changePassword = async (req, res) => {
+const setupAdmin = async (req, res) => {
     try {
-        const userId = req.user.id;
-        const { currentPassword, newPassword } = req.body;
-
-        // Validate inputs
-        if (!currentPassword || !newPassword) {
-            return res.status(400).json({
-                success: false,
-                message: 'Current password and new password are required'
+        // Check if admin already exists
+        const existingAdmin = await User.findOne({ 
+            $or: [
+                { role: 'admin' },
+                { email: 'acadify.online@gmail.com' }
+            ]
+        });
+        if (existingAdmin) {
+            return res.status(200).json({
+                success: true,
+                message: 'Admin already exists'
             });
         }
 
-        if (!validatePassword(newPassword)) {
-            return res.status(400).json({
-                success: false,
-                message: 'New password must be at least 8 characters long and contain uppercase, lowercase, number, and special character'
-            });
-        }
+        // Hash password
+        const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 12);
 
-        // Find user
-        const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
-        }
-
-        // Verify current password
-        const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
-        if (!isCurrentPasswordValid) {
-            return res.status(401).json({
-                success: false,
-                message: 'Current password is incorrect'
-            });
-        }
-
-        // Hash new password
-        const saltRounds = 12;
-        const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
-
-        // Update password
-        await User.findByIdAndUpdate(userId, { 
-            password: hashedNewPassword,
-            updatedAt: new Date()
+        // Create admin user
+        const adminUser = new User({
+            fullName: 'Admin User',
+            email: 'acadify.online@gmail.com',
+            password: hashedPassword,
+            phoneNumber: '123-456-7890',
+            role: 'admin',
+            isVerified: true,
+            isActive: true,
+            approvalStatus: "approved"
         });
 
-        logger.info(`Password changed for user: ${userId}`);
+        await adminUser.save();
 
-        res.status(200).json({
+        return res.status(201).json({
             success: true,
-            message: 'Password changed successfully'
+            message: 'Admin user created successfully',
+            admin: {
+                id: adminUser._id,
+                fullName: adminUser.fullName,
+                email: adminUser.email,
+                role: adminUser.role
+            }
         });
 
     } catch (error) {
-        logger.error('Change password error:', error);
-        res.status(500).json({
+        console.error("Admin setup error:", error);
+        return res.status(500).json({
             success: false,
-            message: 'Failed to change password',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            message: 'Failed to setup admin user',
+            error: error.message
         });
     }
 };
 
-/**
- * Logout user (client-side token invalidation)
- */
-exports.logout = async (req, res) => {
-    try {
-        const userId = req.user.id;
-
-        // Update last logout time
-        await User.findByIdAndUpdate(userId, { lastLogout: new Date() });
-
-        logger.info(`User logged out: ${userId}`);
-
-        res.status(200).json({
-            success: true,
-            message: 'Logged out successfully'
-        });
-
-    } catch (error) {
-        logger.error('Logout error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Logout failed',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
-};
+module.exports = AuthController;
+module.exports.setupAdmin = setupAdmin;

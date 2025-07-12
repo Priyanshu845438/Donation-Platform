@@ -1,0 +1,1214 @@
+
+{
+  "info": {
+    "name": "Donation Platform API",
+    "description": "Comprehensive API collection for the Donation Platform Backend with detailed comments and testing instructions",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://0.0.0.0:5000",
+      "type": "string",
+      "description": "Base URL for the donation platform API server"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT token obtained after successful login - automatically set by login requests"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string",
+      "description": "Current logged-in user ID - automatically set by login requests"
+    },
+    {
+      "key": "campaign_id",
+      "value": "",
+      "type": "string",
+      "description": "ID of a campaign for testing - automatically set when creating campaigns"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "description": "Authentication endpoints for user login, signup, and profile management",
+      "item": [
+        {
+          "name": "Setup Admin (First Time Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "description": "JSON content type for API requests"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  // No body required - creates default admin user\n  // Email: acadify.online@gmail.com\n  // Password: Acadify@123\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/setup-admin",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "setup-admin"],
+              "description": "Creates the default admin user for first-time setup"
+            },
+            "description": "⚠️ Run this ONLY ONCE when setting up the platform for the first time. Creates default admin with predefined credentials."
+          },
+          "response": []
+        },
+        {
+          "name": "User Signup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Doe\",              // Required: Full name of the user\n  \"email\": \"john@example.com\",         // Required: Valid email address (must be unique)\n  \"password\": \"password123\",           // Required: Password (min 6 characters)\n  \"phoneNumber\": \"+1234567890\",        // Required: Phone number with country code\n  \"role\": \"NGO\"                       // Required: Role - either \"NGO\" or \"Company\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/signup",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "signup"]
+            },
+            "description": "Register a new user account. Role can be either 'NGO' or 'Company'. Admin accounts can only be created through setup-admin endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "User Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Automatically save token and user ID from successful login",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('auth_token', response.token);",
+                  "    pm.collectionVariables.set('user_id', response.user._id);",
+                  "    console.log('✅ Login successful - Token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",         // Required: Registered email address\n  \"password\": \"password123\"            // Required: User's password\n  \n  // For Admin Login use:\n  // \"email\": \"acadify.online@gmail.com\",\n  // \"password\": \"Acadify@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login with email and password. Returns JWT token for authenticated requests. Token is automatically saved to collection variables."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "description": "JWT token from login response"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "profile"]
+            },
+            "description": "Get current user's profile information. Requires authentication token."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "fullName",
+                  "value": "Updated Name",
+                  "type": "text",
+                  "description": "Optional: New full name"
+                },
+                {
+                  "key": "phoneNumber",
+                  "value": "+1987654321",
+                  "type": "text",
+                  "description": "Optional: New phone number"
+                },
+                {
+                  "key": "profileImage",
+                  "type": "file",
+                  "description": "Optional: Profile image file (JPG, PNG, max 5MB)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "profile"]
+            },
+            "description": "Update user profile. All fields are optional. Use form-data for file uploads."
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",    // Required: Current password for verification\n  \"newPassword\": \"newpassword123\"       // Required: New password (min 6 characters)\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "change-password"]
+            },
+            "description": "Change user password. Requires current password for security verification."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "Logout current user and invalidate the token."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🌐 Public Endpoints",
+      "description": "Public endpoints accessible without authentication",
+      "item": [
+        {
+          "name": "Get All Campaigns",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/public/campaigns?page=1&limit=10&category=Education&status=Active",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "campaigns"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Optional: Page number for pagination (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Optional: Number of campaigns per page (default: 10, max: 50)"
+                },
+                {
+                  "key": "category",
+                  "value": "Education",
+                  "description": "Optional: Filter by category (Education, Healthcare, Environment, etc.)"
+                },
+                {
+                  "key": "status",
+                  "value": "Active",
+                  "description": "Optional: Filter by status (Active, Completed, Paused)"
+                }
+              ]
+            },
+            "description": "Get list of all public campaigns with optional filtering and pagination. No authentication required."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Campaign by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/public/campaigns/{{campaign_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "campaigns", "{{campaign_id}}"],
+              "variable": [
+                {
+                  "key": "campaign_id",
+                  "value": "CAMPAIGN_ID_HERE",
+                  "description": "Replace with actual campaign ID from campaign list"
+                }
+              ]
+            },
+            "description": "Get detailed information about a specific campaign by its ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Platform Statistics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/public/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "stats"]
+            },
+            "description": "Get public platform statistics including total campaigns, donations, NGOs, and companies."
+          },
+          "response": []
+        },
+        {
+          "name": "Search Campaigns",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/public/search?q=education&type=campaigns",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "education",
+                  "description": "Required: Search query string"
+                },
+                {
+                  "key": "type",
+                  "value": "campaigns",
+                  "description": "Required: Search type - currently supports 'campaigns'"
+                }
+              ]
+            },
+            "description": "Search for campaigns using keywords. Searches in title, description, and category."
+          },
+          "response": []
+        },
+        {
+          "name": "Get NGOs List",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/public/ngos?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "ngos"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Optional: Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Optional: NGOs per page (default: 10)"
+                }
+              ]
+            },
+            "description": "Get list of all approved NGOs with their basic information."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Companies List",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/public/companies?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "companies"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Optional: Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Optional: Companies per page (default: 10)"
+                }
+              ]
+            },
+            "description": "Get list of all approved companies with their basic information."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏢 NGO Endpoints",
+      "description": "Endpoints for NGO role users - campaign management and NGO operations",
+      "item": [
+        {
+          "name": "Get NGO Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "description": "Required: NGO user authentication token"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/ngo/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "ngo", "dashboard"]
+            },
+            "description": "Get NGO dashboard with overview of campaigns, donations received, and key metrics."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Campaign",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Save campaign ID from successful creation",
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('campaign_id', response.campaign._id);",
+                  "    console.log('✅ Campaign created - ID saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "Education for Rural Children",
+                  "type": "text",
+                  "description": "Required: Campaign title (max 200 characters)"
+                },
+                {
+                  "key": "description",
+                  "value": "Providing quality education to children in rural areas with modern teaching methods and infrastructure.",
+                  "type": "text",
+                  "description": "Required: Detailed campaign description"
+                },
+                {
+                  "key": "category",
+                  "value": "Education",
+                  "type": "text",
+                  "description": "Required: Campaign category (Education, Healthcare, Environment, etc.)"
+                },
+                {
+                  "key": "targetAmount",
+                  "value": "100000",
+                  "type": "text",
+                  "description": "Required: Target amount to raise (in rupees)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "type": "text",
+                  "description": "Required: Campaign end date (YYYY-MM-DD format)"
+                },
+                {
+                  "key": "location",
+                  "value": "Rural India",
+                  "type": "text",
+                  "description": "Optional: Campaign location or area of impact"
+                },
+                {
+                  "key": "beneficiaries",
+                  "value": "500 children",
+                  "type": "text",
+                  "description": "Optional: Number and type of beneficiaries"
+                },
+                {
+                  "key": "images",
+                  "type": "file",
+                  "description": "Optional: Campaign images (JPG/PNG, max 5MB each, up to 5 images)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/ngo/campaigns",
+              "host": ["{{base_url}}"],
+              "path": ["api", "ngo", "campaigns"]
+            },
+            "description": "Create a new campaign. Use form-data for file uploads. Campaign requires admin approval before going live."
+          },
+          "response": []
+        },
+        {
+          "name": "Get NGO Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/ngo/campaigns?status=Active&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "ngo", "campaigns"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "Active",
+                  "description": "Optional: Filter by status (Active, Pending, Completed, Rejected)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Optional: Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Optional: Campaigns per page"
+                }
+              ]
+            },
+            "description": "Get all campaigns created by this NGO with optional filtering."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Campaign",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Campaign Title\",         // Optional: New campaign title\n  \"description\": \"Updated description\",      // Optional: New description\n  \"targetAmount\": 150000,                     // Optional: New target amount\n  \"endDate\": \"2024-12-31\",                  // Optional: New end date\n  \"location\": \"Updated Location\",            // Optional: New location\n  \"beneficiaries\": \"600 children\"            // Optional: New beneficiaries info\n  \n  // Note: Only campaigns with status 'Pending' or 'Active' can be updated\n  // Images cannot be updated via JSON - use separate image upload endpoints\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/ngo/campaigns/{{campaign_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "ngo", "campaigns", "{{campaign_id}}"]
+            },
+            "description": "Update an existing campaign. Only the NGO that created the campaign can update it."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Campaign Donations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/ngo/campaigns/{{campaign_id}}/donations?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "ngo", "campaigns", "{{campaign_id}}", "donations"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Optional: Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Optional: Donations per page"
+                }
+              ]
+            },
+            "description": "Get all donations received for a specific campaign owned by this NGO."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏢 Company Endpoints",
+      "description": "Endpoints for Company role users - browsing campaigns and making donations",
+      "item": [
+        {
+          "name": "Get Company Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "description": "Required: Company user authentication token"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/company/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "company", "dashboard"]
+            },
+            "description": "Get company dashboard with donation history, supported campaigns, and impact metrics."
+          },
+          "response": []
+        },
+        {
+          "name": "Make Donation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campaignId\": \"{{campaign_id}}\",         // Required: ID of the campaign to donate to\n  \"amount\": 5000,                           // Required: Donation amount (minimum: 1 rupee)\n  \"donationType\": \"one-time\",               // Required: \"one-time\" or \"recurring\"\n  \"isAnonymous\": false,                     // Optional: Hide donor name (default: false)\n  \"message\": \"Supporting this great cause\",  // Optional: Message for the NGO\n  \"paymentMethod\": \"razorpay\",              // Required: Payment gateway (razorpay, stripe, etc.)\n  \"recurringFrequency\": \"monthly\"           // Required if donationType is \"recurring\" (monthly, quarterly, yearly)\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/company/donate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "company", "donate"]
+            },
+            "description": "Make a donation to a campaign. Returns payment gateway URL for completing the transaction."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Donation History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/company/donations?page=1&limit=10&status=Completed",
+              "host": ["{{base_url}}"],
+              "path": ["api", "company", "donations"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Optional: Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Optional: Donations per page"
+                },
+                {
+                  "key": "status",
+                  "value": "Completed",
+                  "description": "Optional: Filter by status (Pending, Completed, Failed, Refunded)"
+                }
+              ]
+            },
+            "description": "Get company's donation history with optional filtering by status."
+          },
+          "response": []
+        },
+        {
+          "name": "Browse Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/company/campaigns?category=Education&sortBy=newest&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "company", "campaigns"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Education",
+                  "description": "Optional: Filter by category"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "newest",
+                  "description": "Optional: Sort order (newest, oldest, target_asc, target_desc, progress)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Optional: Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Optional: Campaigns per page"
+                }
+              ]
+            },
+            "description": "Browse available campaigns for donation with filtering and sorting options."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Campaign Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/company/campaigns/{{campaign_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "company", "campaigns", "{{campaign_id}}"]
+            },
+            "description": "Get detailed information about a specific campaign for donation consideration."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "👨‍💼 Admin Endpoints",
+      "description": "Admin-only endpoints for platform management and oversight",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Save admin token for subsequent requests",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('auth_token', response.token);",
+                  "    console.log('✅ Admin login successful');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"acadify.online@gmail.com\",     // Default admin email\n  \"password\": \"Acadify@123\"                // Default admin password\n  \n  // Note: Admin login uses the same endpoint as regular users\n  // but requires admin role credentials\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login as admin user. Use default credentials created by setup-admin endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "description": "Required: Admin authentication token"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users?page=1&limit=10&role=NGO&status=Pending",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Optional: Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Optional: Users per page"
+                },
+                {
+                  "key": "role",
+                  "value": "NGO",
+                  "description": "Optional: Filter by role (NGO, Company, Admin)"
+                },
+                {
+                  "key": "status",
+                  "value": "Pending",
+                  "description": "Optional: Filter by approval status (Pending, Approved, Rejected)"
+                }
+              ]
+            },
+            "description": "Get list of all users with optional filtering by role and approval status."
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Jane Smith\",              // Required: Full name\n  \"email\": \"jane@example.com\",           // Required: Unique email\n  \"password\": \"password123\",             // Required: Password\n  \"phoneNumber\": \"+1234567890\",          // Required: Phone number\n  \"role\": \"Company\",                     // Required: User role (NGO, Company)\n  \"approvalStatus\": \"Approved\"            // Optional: Set approval status (default: Pending)\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/create-user",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "create-user"]
+            },
+            "description": "Create a new user account as admin. Can set approval status directly."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/dashboard/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "dashboard", "stats"]
+            },
+            "description": "Get comprehensive platform statistics for admin dashboard."
+          },
+          "response": []
+        },
+        {
+          "name": "Approve User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approvalStatus\": \"Approved\"             // Required: \"Approved\", \"Rejected\", or \"Pending\"\n  \n  // Note: Approving a user allows them to fully access platform features\n  // Rejecting prevents access to role-specific features\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/{{user_id}}/approval",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "{{user_id}}", "approval"]
+            },
+            "description": "Approve, reject, or change approval status of a user account."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns?status=Pending&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "Pending",
+                  "description": "Optional: Filter by status (Pending, Approved, Rejected, Active)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Optional: Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Optional: Campaigns per page"
+                }
+              ]
+            },
+            "description": "Get all campaigns across all NGOs with admin-level details."
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Campaign",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Approved\",                   // Required: \"Approved\", \"Rejected\"\n  \"adminNotes\": \"Campaign looks good\"      // Optional: Admin notes for the decision\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/{{campaign_id}}/approval",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "{{campaign_id}}", "approval"]
+            },
+            "description": "Approve or reject a campaign. Approved campaigns become visible to public."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "💳 Payment Endpoints",
+      "description": "Payment processing and verification endpoints",
+      "item": [
+        {
+          "name": "Create Payment Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campaignId\": \"{{campaign_id}}\",         // Required: Campaign ID to donate to\n  \"amount\": 1000,                          // Required: Amount in rupees\n  \"donorName\": \"John Doe\",                 // Required: Donor's full name\n  \"donorEmail\": \"john@example.com\",        // Required: Donor's email\n  \"donorPhone\": \"+1234567890\",             // Required: Donor's phone number\n  \"paymentMethod\": \"razorpay\"               // Optional: Payment gateway (default: razorpay)\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payment/create-payment-session",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payment", "create-payment-session"]
+            },
+            "description": "Create a payment session for donation. Returns payment gateway URL and session details."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": \"payment_id_from_gateway\",  // Required: Payment ID from gateway response\n  \"signature\": \"payment_signature\",        // Required: Payment signature for verification\n  \"orderId\": \"order_id\"                    // Required: Order ID from create session\n  \n  // Note: These values are typically provided by the payment gateway\n  // after successful payment completion\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payment/verify-payment",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payment", "verify-payment"]
+            },
+            "description": "Verify payment completion and update donation status. Called after payment gateway redirect."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payment Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payment/status/ORDER_ID_HERE",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payment", "status", "ORDER_ID_HERE"],
+              "variable": [
+                {
+                  "key": "ORDER_ID_HERE",
+                  "value": "order_123",
+                  "description": "Replace with actual order ID from payment session"
+                }
+              ]
+            },
+            "description": "Check the current status of a payment/donation by order ID."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📁 File Upload Tests",
+      "description": "File upload testing endpoints for images and documents",
+      "item": [
+        {
+          "name": "Upload Profile Image",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "profileImage",
+                  "type": "file",
+                  "description": "Required: Profile image file (JPG, PNG, max 5MB)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "profile"]
+            },
+            "description": "Upload or update user profile image. Supports JPG, PNG formats up to 5MB."
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Campaign Images",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "images",
+                  "type": "file",
+                  "description": "Required: Campaign images (up to 5 files, max 5MB each)"
+                },
+                {
+                  "key": "title",
+                  "value": "Test Campaign",
+                  "type": "text",
+                  "description": "Required: Campaign title"
+                },
+                {
+                  "key": "description",
+                  "value": "Test campaign description",
+                  "type": "text",
+                  "description": "Required: Campaign description"
+                },
+                {
+                  "key": "category",
+                  "value": "Education",
+                  "type": "text",
+                  "description": "Required: Campaign category"
+                },
+                {
+                  "key": "targetAmount",
+                  "value": "50000",
+                  "type": "text",
+                  "description": "Required: Target amount"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "type": "text",
+                  "description": "Required: End date (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/ngo/campaigns",
+              "host": ["{{base_url}}"],
+              "path": ["api", "ngo", "campaigns"]
+            },
+            "description": "Create campaign with image uploads. Use form-data to include both images and campaign data."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🔍 Health & System Checks",
+      "description": "System health and status checking endpoints",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check server health and status. Returns server info, database connection status, and timestamp."
+          },
+          "response": []
+        },
+        {
+          "name": "API Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "status"]
+            },
+            "description": "Check API service status and version information."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Pre-request script runs before each request",
+          "// You can add custom logic here if needed",
+          "console.log('Making request to:', pm.request.url.toString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script runs after each request",
+          "// Log response status for debugging",
+          "console.log('Response status:', pm.response.code);",
+          "",
+          "// Basic response validation",
+          "pm.test('Response time is reasonable', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});",
+          "",
+          "pm.test('Response has valid JSON', function () {",
+          "    try {",
+          "        pm.response.json();",
+          "    } catch (e) {",
+          "        pm.expect.fail('Response is not valid JSON');",
+          "    }",
+          "});"
+        ]
+      }
+    }
+  ]
+}

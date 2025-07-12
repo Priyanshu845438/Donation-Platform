@@ -1,10 +1,11 @@
 {
-  "name": "donation",
+  "name": "donation-platform",
   "version": "1.0.0",
-  "description": "A comprehensive MERN stack-based donation platform designed for NGOs, companies, and individual donors. This project serves as a B.Tech final year project, offering a real-time, role-based donation and campaign management system with secure payment integration via Cashfree.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "npm --prefix backend start",
+    "client": "npm --prefix frontend start"
   },
   "repository": {
     "type": "git",
@@ -17,5 +18,9 @@
   "bugs": {
     "url": "https://github.com/Priyanshu845438/Donation-Platform/issues"
   },
-  "homepage": "https://github.com/Priyanshu845438/Donation-Platform#readme"
+  "homepage": "https://github.com/Priyanshu845438/Donation-Platform#readme",
+  "description": "",
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
 }

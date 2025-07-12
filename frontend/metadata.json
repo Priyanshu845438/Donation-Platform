@@ -1,6 +1,6 @@
 {
-  "name": "CharityPlus",
-  "description": "A platform to connect donors, NGOs, and companies to facilitate transparent and impactful charitable giving.",
+  "name": "Donation Platform with AI Assistant",
+  "description": "A professional, government-guideline-compliant public website for a donation platform. It promotes transparency and trust, allowing users to explore and donate to live campaigns, understand the organization's mission, and access legal documents. Includes an AI-powered assistant to help users with their questions.",
   "requestFramePermissions": [],
   "prompt": ""
 }

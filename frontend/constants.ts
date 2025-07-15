@@ -1,7 +1,7 @@
 import type { User, Testimonial, TeamMember, PolicyDocument, PolicyContent } from './types.ts';
 
 export const TESTIMONIALS: Testimonial[] = [
-  { id: 1, name: 'Priya Sharma', role: 'Monthly Donor', quote: 'This platform makes it so easy to find and support causes I care about. The transparency and regular updates give me confidence that my contributions are making a real difference.', avatar: 'https://picsum.photos/seed/priya/100' },
+  { id: 1, name: 'Priya Sharma', role: 'Monthly Donor', quote: 'This platform make it so easy to find and support causes I care about. The transparency and regular updates give me confidence that my contributions are making a real difference.', avatar: 'https://picsum.photos/seed/priya/100' },
   { id: 2, name: 'Rohan Verma', role: 'NGO Partner', quote: 'As a small NGO, getting visibility was a challenge. Partnering with this platform has connected us with a wider community of supporters and amplified our impact significantly.', avatar: 'https://picsum.photos/seed/rohan/100' },
   { id: 3, name: 'Anjali Desai', role: 'Corporate Sponsor', quote: 'Our company\'s CSR initiatives have been streamlined through this platform. The detailed reporting and verified campaigns align perfectly with our goal of responsible corporate citizenship.', avatar: 'https://picsum.photos/seed/anjali/100' },
 ];

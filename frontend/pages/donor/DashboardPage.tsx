@@ -1,81 +1,148 @@
 
-
 import React, { useState, useEffect } from 'react';
-import { donorAPI } from '../../services/api.ts';
-import { FiHeart, FiDollarSign, FiLoader, FiAlertCircle, FiAward } from 'react-icons/fi';
-import { useToast } from '../../context/ToastContext.tsx';
-import Button from '../../components/Button.tsx';
+import { useAuth } from '../../hooks/useAuth';
+import { useToast } from '../../context/ToastContext';
+import { FiLoader, FiHeart, FiTrendingUp, FiUsers, FiDollarSign } from 'react-icons/fi';
+import StatCard from '../../components/dashboard/StatCard';
+import { Link } from 'react-router-dom';
 
-const StatCard = ({ icon, title, value, colorClass }) => (
-    <div className={`bg-white dark:bg-brand-dark-200 p-6 rounded-lg shadow-lg border-l-4 ${colorClass}`}>
-        <div className="flex items-center gap-4">
-            <div className={`p-3 rounded-full bg-gray-100 dark:bg-brand-dark`}>{icon}</div>
-            <div>
-                <p className="text-3xl font-bold text-gray-800 dark:text-white">{value}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{title}</p>
-            </div>
-        </div>
-    </div>
-);
+interface DashboardStats {
+    totalDonations: number;
+    totalAmount: number;
+    supportedCampaigns: number;
+    supportedNgos: number;
+    recentDonations: any[];
+}
 
 const DonorDashboardPage: React.FC = () => {
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const { addToast } = useToast();
+    const { user } = useAuth();
+    const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [loading, setLoading] = useState(true);
+    const { addToast } = useToast();
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await donorAPI.getDashboard();
-        setStats(response.stats);
-      } catch (error: any) {
-        addToast(error.message || 'Failed to load dashboard stats.', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
-  }, [addToast]);
-  
-  if(loading) {
-      return <div className="flex items-center justify-center h-full"><FiLoader className="animate-spin h-8 w-8 text-brand-gold"/></div>
-  }
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const response = await fetch('/api/donor/dashboard', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    setStats(data.data.stats);
+                } else {
+                    throw new Error('Failed to fetch dashboard stats');
+                }
+            } catch (error: any) {
+                addToast(error.message || 'Failed to load dashboard stats.', 'error');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchStats();
+    }, [addToast]);
 
-  return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white">My Dashboard</h1>
-        <Button to="/donor/campaigns">Explore Campaigns</Button>
-      </div>
-      
-      {stats ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <StatCard icon={<FiDollarSign size={24} className="text-green-500" />} title="Total Donated" value={`₹${(stats.totalDonatedAmount || 0).toLocaleString()}`} colorClass="border-green-500" />
-            <StatCard icon={<FiHeart size={24} className="text-red-500" />} title="Campaigns Supported" value={stats.campaignsSupported} colorClass="border-red-500" />
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <FiLoader className="animate-spin h-8 w-8 text-brand-gold" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-8">
+            <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                    Welcome back, {user?.fullName}!
+                </h1>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">
+                    Thank you for making a difference in the world.
+                </p>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard
+                    title="Total Donated"
+                    value={`$${stats?.totalAmount?.toLocaleString() || 0}`}
+                    icon={<FiDollarSign />}
+                    color="text-green-600"
+                />
+                <StatCard
+                    title="Total Donations"
+                    value={stats?.totalDonations?.toString() || '0'}
+                    icon={<FiHeart />}
+                    color="text-red-600"
+                />
+                <StatCard
+                    title="Campaigns Supported"
+                    value={stats?.supportedCampaigns?.toString() || '0'}
+                    icon={<FiTrendingUp />}
+                    color="text-blue-600"
+                />
+                <StatCard
+                    title="NGOs Supported"
+                    value={stats?.supportedNgos?.toString() || '0'}
+                    icon={<FiUsers />}
+                    color="text-purple-600"
+                />
+            </div>
+
+            {/* Recent Donations */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                        Recent Donations
+                    </h2>
+                </div>
+                <div className="p-6">
+                    {stats?.recentDonations && stats.recentDonations.length > 0 ? (
+                        <div className="space-y-4">
+                            {stats.recentDonations.map((donation: any) => (
+                                <div 
+                                    key={donation._id}
+                                    className="flex items-center justify-between p-4 border rounded-lg dark:border-gray-600"
+                                >
+                                    <div>
+                                        <h3 className="font-medium text-gray-900 dark:text-white">
+                                            {donation.campaignId?.title || 'Campaign'}
+                                        </h3>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            {new Date(donation.createdAt).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-semibold text-green-600">
+                                            ${donation.amount.toLocaleString()}
+                                        </p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            {donation.status}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <FiHeart className="mx-auto h-12 w-12 text-gray-400" />
+                            <p className="mt-4 text-gray-500 dark:text-gray-400">
+                                No donations yet. Start making a difference today!
+                            </p>
+                            <Link 
+                                to="/donor/campaigns"
+                                className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+                            >
+                                Explore Campaigns
+                            </Link>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
-      ) : (
-          <div className="p-6 bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 rounded-lg shadow-md flex items-center gap-3">
-            <FiAlertCircle/> No statistics available yet. Make your first donation!
-          </div>
-      )}
-      
-      <div className="mt-6 p-6 bg-white dark:bg-brand-dark-200 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2"><FiAward /> My Impact & Achievements</h2>
-        <div className="text-center py-8">
-            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200">Coming Soon!</h3>
-            <p className="mt-2 text-gray-500 dark:text-gray-400">
-                This is where you'll see the badges you've earned and track the real-world impact of your donations.
-            </p>
-        </div>
-      </div>
-
-
-      <div className="mt-6 p-6 bg-white dark:bg-brand-dark-200 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Recommended Campaigns</h2>
-        <p className="text-gray-500">Personalized recommendations coming soon...</p>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default DonorDashboardPage;

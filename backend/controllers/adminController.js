@@ -9,9 +9,14 @@ const Settings = require("../models/Settings");
 const ShareLink = require("../models/ShareLink");
 const bcrypt = require("bcryptjs");
 const { createErrorResponse, createSuccessResponse } = require("../utils/errorHandler");
-const nodemailer = require("nodemailer");
 const fs = require("fs");
 const path = require("path");
+
+
+const nodemailer = require('nodemailer');
+const logger = require('../utils/logger');
+const { sanitizeInput } = require('../utils/sanitizer');
+const { validateEmail, validatePhone } = require('../utils/validators');
 
 class AdminController {
     // Dashboard analytics
@@ -1568,7 +1573,7 @@ class AdminController {
     static async getCampaignFiles(req, res) {
         try {
             const { campaignId } = req.params;
-            
+
             const campaign = await Campaign.findById(campaignId);
             if (!campaign) {
                 return createErrorResponse(res, 404, "Campaign not found");
@@ -1595,7 +1600,7 @@ class AdminController {
     static async getCampaignImages(req, res) {
         try {
             const { campaignId } = req.params;
-            
+
             const campaign = await Campaign.findById(campaignId);
             if (!campaign) {
                 return createErrorResponse(res, 404, "Campaign not found");
@@ -1616,7 +1621,7 @@ class AdminController {
     static async getCampaignDocuments(req, res) {
         try {
             const { campaignId } = req.params;
-            
+
             const campaign = await Campaign.findById(campaignId);
             if (!campaign) {
                 return createErrorResponse(res, 404, "Campaign not found");
@@ -1637,7 +1642,7 @@ class AdminController {
     static async getCampaignProof(req, res) {
         try {
             const { campaignId } = req.params;
-            
+
             const campaign = await Campaign.findById(campaignId);
             if (!campaign) {
                 return createErrorResponse(res, 404, "Campaign not found");

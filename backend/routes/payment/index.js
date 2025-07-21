@@ -2,6 +2,7 @@
 const express = require("express");
 const PaymentController = require("../../controllers/paymentController");
 const authMiddleware = require("../../middleware/auth");
+const testRoutes = require("./test");
 
 const router = express.Router();
 
@@ -19,5 +20,10 @@ router.get("/receipt/:donationId", PaymentController.getDonationReceipt);
 
 // Get donation statistics (admin only)
 router.get("/stats", authMiddleware(["admin"]), PaymentController.getDonationStats);
+
+// Test routes (only in development)
+if (process.env.NODE_ENV === 'development') {
+    router.use("/test", testRoutes);
+}
 
 module.exports = router;

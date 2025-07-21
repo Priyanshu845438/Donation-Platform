@@ -8,10 +8,10 @@ const NGO = require('../models/NGO');
 const Company = require('../models/Company');
 const { createErrorResponse, createSuccessResponse } = require('../utils/errorHandler');
 
-// Initialize Razorpay (use dummy credentials for testing)
+// Initialize Razorpay with dummy credentials for testing
 const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_1a2b3c4d5e6f7g',
-    key_secret: process.env.RAZORPAY_KEY_SECRET || '1234567890abcdef12345678'
+    key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_1DP5mmOlF5G5ag',
+    key_secret: process.env.RAZORPAY_KEY_SECRET || 'THnAT7xgfg6POoRTOGKDwgBx'
 });
 
 class PaymentController {

@@ -1,4 +1,3 @@
-
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Outlet, useLocation } from 'react-router-dom';
 
@@ -30,7 +29,10 @@ const SignupPage = lazy(() => import('./pages/SignupPage.tsx'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage.tsx'));
 const ShareProfilePage = lazy(() => import('./pages/ShareProfilePage.tsx'));
 const ShareCampaignPage = lazy(() => import('./pages/ShareCampaignPage.tsx'));
-const TaskManagerPage = lazy(() => import('./pages/TaskManagerPage.tsx'));
+import TaskManagerPage from './pages/TaskManagerPage.tsx';
+import PaymentTestPage from './pages/PaymentTestPage.tsx';
+import { AuthContext } from './context/AuthContext.tsx';
+import { useContext } from 'react';
 
 // Admin Pages (Lazy Loaded)
 const AdminDashboardPage = lazy(() => import('./pages/admin/DashboardPage.tsx'));
@@ -61,6 +63,7 @@ const NgoReportsPage = lazy(() => import('./pages/ngo/ReportsPage.tsx'));
 const NgoProfilePage = lazy(() => import('./pages/ngo/ProfilePage.tsx'));
 const NgoSettingsPage = lazy(() => import('./pages/ngo/SettingsPage.tsx'));
 const NgoVolunteeringPage = lazy(() => import('./pages/ngo/VolunteeringPage.tsx'));
+import NgoUserListPage from './pages/ngo/UserListPage.tsx';
 
 // Company Pages (Lazy Loaded)
 const CompanyDashboardPage = lazy(() => import('./pages/company/DashboardPage.tsx'));
@@ -161,7 +164,7 @@ const App: React.FC = () => {
                         <Route path="settings" element={<SettingsPage />} />
                         <Route path="settings/appearance" element={<AppearancePage />} />
                     </Route>
-                    
+
                     {/* NGO routes */}
                     <Route
                         path="/ngo"
@@ -177,7 +180,7 @@ const App: React.FC = () => {
                         <Route path="campaigns/new" element={<NgoCreateCampaignPage />} />
                         <Route path="campaigns/:campaignId/edit" element={<NgoEditCampaignPage />} />
                         <Route path="companies" element={<CompanyListPage />} />
-                        <Route path="users" element={<UserListPage />} />
+                        <Route path="users" element={<NgoUserListPage />} />
                         <Route path="reports" element={<NgoReportsPage />} />
                         <Route path="profile" element={<NgoProfilePage />} />
                         <Route path="settings" element={<NgoSettingsPage />} />
@@ -224,7 +227,9 @@ const App: React.FC = () => {
                     {/* Standalone Shared Pages */}
                     <Route path="/share/profile/:shareId" element={<ShareProfilePage />} />
                     <Route path="/share/campaign/:shareId" element={<ShareCampaignPage />} />
-                </Routes>
+                    <Route path="/task-manager" element={<TaskManagerPage />} />
+              <Route path="/payment-test" element={<PaymentTestPage />} />
+            </Routes>
             </Suspense>
         </BrowserRouter>
     );

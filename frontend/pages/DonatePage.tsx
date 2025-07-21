@@ -90,7 +90,7 @@ const DonatePage: React.FC = () => {
         
         if (orderData && orderData.success) {
             const rzpOptions = {
-                key: 'rzp_test_dummy_key', // Replace with your actual Razorpay Key ID
+                key: 'rzp_test_1DP5mmOlF5G5ag', // Dummy Razorpay Key ID for testing
                 amount: orderData.data.order.amount,
                 currency: orderData.data.order.currency,
                 name: 'DonationHub',

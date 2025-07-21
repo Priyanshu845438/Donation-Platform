@@ -235,4 +235,100 @@ router.post("/donate", authMiddleware(["company"]), async (req, res) => {
     }
 });
 
+// Company reports and stats
+router.get("/reports/stats", authMiddleware(["company"]), async (req, res) => {
+    try {
+        const userId = req.user._id || req.user.id;
+        const company = await Company.findOne({ userId });
+        
+        if (!company) {
+            return res.status(404).json({ message: "Company profile not found" });
+        }
+
+        const totalDonations = await Donation.countDocuments({ companyId: company._id });
+        const totalAmountResult = await Donation.aggregate([
+            { $match: { companyId: company._id } },
+            { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]);
+        const totalAmount = totalAmountResult[0]?.total || 0;
+        
+        const activeCampaigns = await Donation.distinct("campaignId", { companyId: company._id }).then(campaigns => campaigns.length);
+
+        res.json({
+            totalDonations,
+            totalAmount,
+            activeCampaigns,
+            impactMetrics: {
+                beneficiariesReached: totalDonations * 10, // Estimated
+                projectsSupported: activeCampaigns
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching report stats", error: error.message });
+    }
+});
+
+// Company settings
+router.get("/settings", authMiddleware(["company"]), async (req, res) => {
+    try {
+        // Return default settings for now
+        res.json({
+            notifications: {
+                emailNotifications: true,
+                donationConfirmations: true,
+                campaignUpdates: true,
+                monthlyReports: true,
+                marketingEmails: false
+            },
+            privacy: {
+                publicProfile: true,
+                showDonations: false
+            },
+            preferences: {
+                currency: 'INR',
+                timezone: 'Asia/Kolkata',
+                language: 'en'
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching settings", error: error.message });
+    }
+});
+
+router.put("/settings", authMiddleware(["company"]), async (req, res) => {
+    try {
+        // For now, just return success - implement actual settings storage later
+        res.json({ message: "Settings updated successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Error updating settings", error: error.message });
+    }
+});
+
+// Upload company logo
+router.post("/upload-logo", authMiddleware(["company"]), upload.single("companyLogo"), async (req, res) => {
+    try {
+        const userId = req.user._id || req.user.id;
+        
+        if (!req.file) {
+            return res.status(400).json({ message: "No file uploaded" });
+        }
+
+        const logoPath = `/uploads/company/${req.file.filename}`;
+        
+        const company = await Company.findOneAndUpdate(
+            { userId }, 
+            { companyLogo: logoPath }, 
+            { new: true }
+        );
+        
+        if (!company) {
+            return res.status(404).json({ message: "Company profile not found" });
+        }
+
+        res.json({ message: "Logo uploaded successfully", company });
+    } catch (error) {
+        res.status(500).json({ message: "Error uploading logo", error: error.message });
+    }
+});
+
 module.exports = router;

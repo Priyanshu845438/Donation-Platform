@@ -1,148 +1,177 @@
 
-import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext } from '../../context/AuthContext.tsx';
-import { userAPI, adminAPI } from '../../services/api.ts'; // Using adminAPI for doc uploads
-import type { User } from '../../types.ts';
-import Button from '../../components/Button.tsx';
-import { FiSave, FiLoader, FiBriefcase, FiFileText, FiDownload, FiUploadCloud } from 'react-icons/fi';
-import { useToast } from '../../context/ToastContext.tsx';
+import React, { useState, useEffect, useRef } from 'react';
+import { useToast } from '../../components/ui/Toast';
+import { apiFetch } from '../../services/api';
+import Button from '../../components/common/Button';
 
-const FormField = ({ label, name, value, onChange, type = 'text', children }: any) => (
-    <div>
-        <label htmlFor={name} className="block text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
-        {children || <input type={type} id={name} name={name} value={value || ''} onChange={onChange} className="mt-1 w-full px-4 py-2 border rounded-md bg-transparent focus:outline-none focus:ring-2 focus:ring-brand-gold"/>}
-    </div>
-);
-
-const FormSection = ({ title, icon, children }: { title: string, icon: React.ReactNode, children: React.ReactNode }) => (
-    <div className="bg-white dark:bg-brand-dark-200 p-6 rounded-lg shadow-md space-y-4">
-        <h3 className="text-lg font-semibold mb-4 border-b dark:border-gray-700 pb-2 flex items-center gap-2">{icon}{title}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>
-    </div>
-);
+interface CompanyProfile {
+    _id: string;
+    companyName: string;
+    email: string;
+    website?: string;
+    companyAddress?: string;
+    ceoName?: string;
+    ceoContactNumber?: string;
+    companyType?: string;
+    numberOfEmployees?: number;
+    companyLogo?: string;
+    industry?: string;
+    description?: string;
+    isVerified: boolean;
+}
 
 const CompanyProfilePage: React.FC = () => {
-    const { user: currentUser, loading: authLoading } = useContext(AuthContext);
-    const [profile, setProfile] = useState<User | null>(null);
-    const [formData, setFormData] = useState<any>({});
-    const [docs, setDocs] = useState<File[]>([]);
-    const [uploading, setUploading] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
     const { addToast } = useToast();
-
-    const fetchProfile = async () => {
-        try {
-            const userProfile = await userAPI.getProfile();
-            setProfile(userProfile);
-            setFormData(userProfile.profile || {});
-        } catch (err: any) {
-            addToast(err.message || "Failed to load profile", 'error');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const [profile, setProfile] = useState<Partial<CompanyProfile>>({});
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        if (!authLoading && currentUser) {
-            fetchProfile();
-        }
-    }, [currentUser, authLoading]);
-    
+        const fetchProfile = async () => {
+            try {
+                const response = await apiFetch<CompanyProfile>('/company/profile');
+                setProfile(response);
+            } catch (error: any) {
+                addToast(error.message || 'Failed to fetch company profile.', 'error');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchProfile();
+    }, [addToast]);
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setProfile(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            const { _id, companyLogo, isVerified, ...updateData } = profile;
+            await apiFetch('/company/profile', {
+                method: 'PUT',
+                body: updateData
+            });
+            addToast('Company Profile updated successfully!', 'success');
+        } catch (error: any) {
+            addToast(error.message || 'Failed to update profile.', 'error');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
     
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) setDocs(Array.from(e.target.files));
-    };
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
 
-    const handleUpload = async () => {
-        if (docs.length === 0 || !profile) return;
-        setUploading(true);
+        const formData = new FormData();
+        formData.append('companyLogo', file);
+        setIsUploading(true);
         try {
-            await adminAPI.uploadCompanyDocuments(profile._id, docs);
-            addToast('Documents uploaded successfully!', 'success');
-            setDocs([]);
-            await fetchProfile(); // Refresh profile to show new docs
-        } catch (err: any) {
-            addToast(err.message || 'Failed to upload documents.', 'error');
+            const response = await apiFetch<{ company: CompanyProfile }>('/company/upload-logo', {
+                method: 'POST',
+                body: formData
+            });
+            setProfile(response.company);
+            addToast('Logo uploaded successfully!', 'success');
+        } catch (error: any) {
+            addToast(error.message || 'Failed to upload logo.', 'error');
         } finally {
-            setUploading(false);
+            setIsUploading(false);
         }
     };
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSaving(true);
-        try {
-            await userAPI.updateProfile({ ...formData });
-            addToast('Profile updated successfully!', 'success');
-        } catch (err: any) {
-            addToast(`Failed to update profile: ${err.message}`, 'error');
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    if (loading || authLoading) {
-        return <div className="flex items-center justify-center h-64"><FiLoader className="animate-spin h-8 w-8 text-brand-gold"/></div>;
+    const inputStyles = "block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm";
+    
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        );
     }
 
     return (
-        <div className="space-y-6">
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Edit Company Profile</h1>
-            <form onSubmit={handleSave} className="space-y-6">
-                <FormSection title="Company Details" icon={<FiBriefcase/>}>
-                    <FormField label="Company Name" name="companyName" value={formData.companyName} onChange={handleInputChange} />
-                    <FormField label="Company Type" name="companyType" value={formData.companyType} onChange={handleInputChange} />
-                    <FormField label="Company Address" name="companyAddress" value={formData.companyAddress} onChange={handleInputChange} />
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
-                        <textarea name="description" value={formData.description} onChange={handleInputChange} className="mt-1 w-full h-24 px-4 py-2 border rounded-md bg-transparent focus:outline-none focus:ring-2 focus:ring-brand-gold"/>
-                    </div>
-                </FormSection>
-
-                <FormSection title="CEO Details" icon={<FiBriefcase/>}>
-                    <FormField label="CEO Name" name="ceoName" value={formData.ceoName} onChange={handleInputChange} />
-                    <FormField label="CEO Phone" name="ceoContactNumber" value={formData.ceoContactNumber} onChange={handleInputChange} />
-                    <FormField label="CEO Email" name="ceoEmail" value={formData.ceoEmail} onChange={handleInputChange} type="email" />
-                </FormSection>
-                
-                <div className="flex justify-end pt-4">
-                    <Button type="submit" variant="primary" disabled={isSaving}><FiSave className="mr-2"/>{isSaving ? 'Saving...' : 'Save Changes'}</Button>
-                </div>
-            </form>
+        <div className="space-y-8 max-w-6xl mx-auto">
+            <div>
+                <h1 className="text-3xl font-bold text-gray-900">Company Profile</h1>
+                <p className="mt-2 text-gray-600">Manage your corporate identity and details for CSR initiatives.</p>
+            </div>
             
-            <FormSection title="Company Documents" icon={<FiFileText />}>
-                <div className="md:col-span-2 space-y-4">
-                    <div>
-                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Existing Documents</h4>
-                        {formData.documents && formData.documents.length > 0 ? (
-                            <ul className="space-y-2">
-                                {formData.documents.map((doc, i) => (
-                                    <li key={i}>
-                                        <a href={doc} target="_blank" rel="noopener noreferrer" className="flex items-center text-sm text-brand-gold hover:underline">
-                                            <FiDownload className="mr-2"/> {doc.split('/').pop()}
-                                        </a>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : <p className="text-sm text-gray-500">No documents uploaded.</p>}
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upload New Documents</h4>
-                        <input type="file" multiple onChange={handleFileChange} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-gold/20 file:text-brand-gold hover:file:bg-brand-gold/30"/>
-                        <div className="text-right mt-2">
-                            <Button type="button" onClick={handleUpload} disabled={uploading || docs.length === 0}>
-                                {uploading ? <FiLoader className="animate-spin mr-2" /> : <FiUploadCloud className="mr-2" />}
-                                {uploading ? 'Uploading...' : `Upload ${docs.length} File(s)`}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {/* Logo Section */}
+                <div className="md:col-span-1 flex flex-col items-center bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+                    <img 
+                        src={profile.companyLogo || `https://ui-avatars.com/api/?name=${profile.companyName || 'C'}&background=0d6efd&color=fff&size=128`} 
+                        alt="Company Logo" 
+                        className="w-32 h-32 rounded-full object-cover mb-4 border-4 border-primary"
+                    />
+                    <h3 className="text-lg font-bold text-center">{profile.companyName}</h3>
+                    {profile.isVerified && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-2">
+                            ✓ Verified
+                        </span>
+                    )}
+                    <input type="file" ref={fileInputRef} onChange={handleLogoUpload} className="hidden" accept="image/*" />
+                    <Button onClick={() => fileInputRef.current?.click()} className="mt-4" variant="outline" size="sm" disabled={isUploading}>
+                        {isUploading ? 'Uploading...' : 'Change Logo'}
+                    </Button>
+                </div>
+
+                {/* Profile Form */}
+                <form onSubmit={handleSubmit} className="md:col-span-2 bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div>
+                            <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
+                            <input id="companyName" name="companyName" type="text" required value={profile.companyName || ''} onChange={handleInputChange} className={inputStyles} />
+                        </div>
+                         <div>
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                            <input id="email" name="email" type="email" required value={profile.email || ''} onChange={handleInputChange} className={inputStyles} />
+                        </div>
+                         <div>
+                            <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                            <input id="website" name="website" type="url" value={profile.website || ''} onChange={handleInputChange} className={inputStyles} />
+                        </div>
+                        <div>
+                            <label htmlFor="industry" className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
+                            <input id="industry" name="industry" type="text" value={profile.industry || ''} onChange={handleInputChange} className={inputStyles} />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label htmlFor="companyAddress" className="block text-sm font-medium text-gray-700 mb-1">Company Address</label>
+                            <input id="companyAddress" name="companyAddress" type="text" value={profile.companyAddress || ''} onChange={handleInputChange} className={inputStyles} />
+                        </div>
+                        <div>
+                            <label htmlFor="ceoName" className="block text-sm font-medium text-gray-700 mb-1">CEO Name</label>
+                            <input id="ceoName" name="ceoName" type="text" value={profile.ceoName || ''} onChange={handleInputChange} className={inputStyles} />
+                        </div>
+                        <div>
+                            <label htmlFor="ceoContactNumber" className="block text-sm font-medium text-gray-700 mb-1">CEO Contact</label>
+                            <input id="ceoContactNumber" name="ceoContactNumber" type="tel" value={profile.ceoContactNumber || ''} onChange={handleInputChange} className={inputStyles} />
+                        </div>
+                        <div>
+                            <label htmlFor="companyType" className="block text-sm font-medium text-gray-700 mb-1">Company Type</label>
+                            <input id="companyType" name="companyType" type="text" value={profile.companyType || ''} onChange={handleInputChange} className={inputStyles} />
+                        </div>
+                         <div>
+                            <label htmlFor="numberOfEmployees" className="block text-sm font-medium text-gray-700 mb-1">Number of Employees</label>
+                            <input id="numberOfEmployees" name="numberOfEmployees" type="number" value={profile.numberOfEmployees || ''} onChange={handleInputChange} className={inputStyles} />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Company Description</label>
+                            <textarea id="description" name="description" rows={4} value={profile.description || ''} onChange={handleInputChange} className={inputStyles} />
+                        </div>
+                        <div className="md:col-span-2 text-right">
+                            <Button type="submit" variant="primary" disabled={isSubmitting}>
+                                {isSubmitting ? "Saving..." : "Save Changes"}
                             </Button>
                         </div>
                     </div>
-                </div>
-            </FormSection>
+                </form>
+            </div>
         </div>
     );
 };

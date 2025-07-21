@@ -10,7 +10,6 @@ import type { Campaign } from '../types.ts';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-
 interface Message {
   sender: 'user' | 'bot';
   text: string;
@@ -96,7 +95,7 @@ const AIChatbot: React.FC = () => {
   const initializeChat = () => {
     if (!chatRef.current) {
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+            const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_GEMINI_API_KEY! });
             const campaignInfo = campaigns.map(c => `- **${c.title}**: Goal ₹${c.goal.toLocaleString()}, Raised ₹${c.raised.toLocaleString()}. Link: /campaign/${c.id}`).join('\n');
             const pageContext = getPageContext();
             

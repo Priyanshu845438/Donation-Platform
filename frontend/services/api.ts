@@ -1,7 +1,3 @@
-
-
-
-
 import type { User, Campaign, Notice, Task, Donation, DashboardData, SystemHealth, SecurityDashboardData } from './types.ts';
 
 const API_BASE = 'http://localhost:5000/api';
@@ -203,6 +199,14 @@ export const paymentAPI = {
       method: 'POST',
       body: JSON.stringify(paymentVerificationData)
     }),
+  simulateSuccess: (data: any) => request('/payment/simulate-success', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+
+  getStats: () => request('/payment/stats', {
+    method: 'GET'
+  })
 };
 
 // Public API (assumed endpoint)
@@ -339,7 +343,7 @@ export const organizationAPI = {
       companies: companies.map(transformBackendUser)
     };
   },
-  
+
   getCompanies: async (): Promise<User[]> => {
      const data = await request('/organizations/companies/public');
      const companies = data.companies || (Array.isArray(data) ? data : []);
@@ -413,9 +417,30 @@ export const taskAPI = {
 // NGO Endpoints
 export const ngoAPI = {
     getDashboard: () => request('/ngo/dashboard'),
-    getReports: (filters: any) => request('/ngo/reports', {
+    getProfile: () => request('/ngo/profile'),
+    updateProfile: (data: any) => request('/ngo/profile', {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    }),
+    getCampaigns: () => request('/ngo/campaigns'),
+    createCampaign: (data: any) => request('/ngo/campaigns', {
         method: 'POST',
-        body: JSON.stringify(filters)
+        body: JSON.stringify(data)
+    }),
+    updateCampaign: (id: string, data: any) => request(`/ngo/campaigns/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    }),
+    getCompanies: () => request('/ngo/companies'),
+    getCompany: (id: string) => request(`/ngo/companies/${id}`),
+    getDonations: () => request('/ngo/donations'),
+    getUsers: () => request('/ngo/users'),
+    getVolunteering: () => request('/ngo/volunteering'),
+    getReports: () => request('/ngo/reports'),
+    getSettings: () => request('/ngo/settings'),
+    updateSettings: (data: any) => request('/ngo/settings', {
+        method: 'PUT',
+        body: JSON.stringify(data)
     }),
 };
 
@@ -758,10 +783,10 @@ export const adminAPI = {
   dashboard: {
     getOverview: (timeRange: string = '30d'): Promise<DashboardData> => 
       request(`/admin/dashboard?timeRange=${timeRange}`),
-    
+
     getSystemHealth: (): Promise<{success: boolean, data: SystemHealth}> => 
       request('/admin/dashboard/system-health'),
-      
+
     getSecurity: (): Promise<{success: boolean, data: SecurityDashboardData}> =>
       request('/admin/dashboard/security'),
   },

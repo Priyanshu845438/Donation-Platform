@@ -1,28 +1,69 @@
+const mongoose = require('mongoose');
 
-const mongoose = require("mongoose");
-
-const SettingsSchema = new mongoose.Schema({
-    category: { type: String, required: true, unique: true },
+const settingsSchema = new mongoose.Schema({
+    category: {
+        type: String,
+        required: true,
+        unique: true,
+        trim: true
+    },
     settings: {
         type: Map,
-        of: mongoose.Schema.Types.Mixed
+        of: mongoose.Schema.Types.Mixed,
+        default: new Map()
     },
-    isActive: { type: Boolean, default: true },
-    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    lastModified: { type: Date, default: Date.now }
-}, { timestamps: true });
+    updatedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: false
+    },
+    lastModified: {
+        type: Date,
+        default: Date.now
+    },
+    isActive: {
+        type: Boolean,
+        default: true
+    }
+}, {
+    timestamps: true,
+    collection: 'settings'
+});
 
-// Default settings with all categories
-SettingsSchema.statics.getDefaultSettings = function() {
+// Index for faster queries
+settingsSchema.index({ category: 1 });
+settingsSchema.index({ updatedBy: 1 });
+
+// Static method to get default settings
+settingsSchema.statics.getDefaultSettings = function() {
     return {
         email: {
-            smtp_host: "smtp.hostinger.com",
-            smtp_port: 465,
-            smtp_secure: true,
-            from_email: process.env.EMAIL_ID,
-            from_name: "Donation Platform",
-            reply_to: process.env.EMAIL_ID,
+            smtp_host: "smtp.gmail.com",
+            smtp_port: 587,
+            smtp_secure: false,
+            from_email: "noreply@example.com",
             enable_notifications: true
+        },
+        security: {
+            password_min_length: 8,
+            password_require_uppercase: true,
+            password_require_lowercase: true,
+            password_require_numbers: true,
+            password_require_symbols: false,
+            session_timeout: 3600,
+            max_login_attempts: 5
+        },
+        general: {
+            site_name: "Donation Platform",
+            site_description: "A platform for charitable donations",
+            maintenance_mode: false,
+            registration_enabled: true
+        },
+        branding: {
+            logo_url: "",
+            favicon_url: "",
+            primary_color: "#007bff",
+            secondary_color: "#6c757d"
         },
         payment: {
             gateway: "razorpay",
@@ -33,18 +74,6 @@ SettingsSchema.statics.getDefaultSettings = function() {
             minimum_donation: 1,
             maximum_donation: 100000
         },
-        general: {
-            site_name: "Donation Platform",
-            site_tagline: "Making a difference together",
-            site_description: "A platform for charitable donations and fundraising",
-            maintenance_mode: false,
-            registration_enabled: true,
-            auto_approve_users: false,
-            default_currency: "INR",
-            timezone: "Asia/Kolkata",
-            date_format: "DD/MM/YYYY",
-            time_format: "12"
-        },
         notifications: {
             email_notifications: true,
             push_notifications: false,
@@ -52,17 +81,6 @@ SettingsSchema.statics.getDefaultSettings = function() {
             admin_notifications: true,
             user_notifications: true,
             campaign_notifications: true
-        },
-        security: {
-            password_min_length: 8,
-            password_require_uppercase: true,
-            password_require_lowercase: true,
-            password_require_numbers: true,
-            password_require_symbols: false,
-            login_attempts_limit: 5,
-            login_lockout_duration: 30,
-            session_timeout: 1440,
-            two_factor_auth: false
         },
         rate_limiting: {
             enabled: true,
@@ -84,18 +102,6 @@ SettingsSchema.statics.getDefaultSettings = function() {
             registration_number: "CIN123456789",
             gst_number: "",
             pan_number: ""
-        },
-        branding: {
-            logo_url: "/uploads/branding/logo.png",
-            favicon_url: "/uploads/branding/favicon.ico",
-            primary_color: "#007bff",
-            secondary_color: "#6c757d",
-            success_color: "#28a745",
-            warning_color: "#ffc107",
-            danger_color: "#dc3545",
-            info_color: "#17a2b8",
-            font_family: "Arial, sans-serif",
-            theme: "light"
         },
         social: {
             facebook_url: "",
@@ -135,7 +141,7 @@ SettingsSchema.statics.getDefaultSettings = function() {
 };
 
 // Initialize default settings
-SettingsSchema.statics.initializeDefaults = async function() {
+settingsSchema.statics.initializeDefaults = async function() {
     try {
         const defaults = this.getDefaultSettings();
         
@@ -154,4 +160,4 @@ SettingsSchema.statics.initializeDefaults = async function() {
     }
 };
 
-module.exports = mongoose.model("Settings", SettingsSchema);
+module.exports = mongoose.model('Settings', settingsSchema);

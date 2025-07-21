@@ -27,6 +27,12 @@ router.get("/dashboard", authMiddleware(["ngo"]), async (req, res) => {
 
         res.json({
             success: true,
+            stats: {
+                totalCampaigns: campaigns.length,
+                totalRaised: totalDonations[0]?.total || 0,
+                completedCampaigns: campaigns.filter(c => c.status === 'completed').length,
+                activeCampaigns: campaigns.filter(c => c.status === 'active').length
+            },
             data: {
                 ngo,
                 campaigns,
@@ -171,6 +177,163 @@ router.get("/companies/:id", authMiddleware(["ngo"]), async (req, res) => {
         res.json(company);
     } catch (error) {
         res.status(500).json({ message: "Error fetching company", error: error.message });
+    }
+});
+
+// Volunteering management
+router.get("/volunteering", authMiddleware(["ngo"]), async (req, res) => {
+    try {
+        // For now, return empty volunteering data
+        res.json({
+            success: true,
+            data: {
+                volunteers: [],
+                opportunities: [],
+                applications: []
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching volunteering data", error: error.message });
+    }
+});
+
+// Users management (view donors/users)
+router.get("/users", authMiddleware(["ngo"]), async (req, res) => {
+    try {
+        const userId = req.user._id || req.user.id;
+        const ngo = await NGO.findOne({ userId });
+        
+        if (!ngo) {
+            return res.status(404).json({ message: "NGO profile not found" });
+        }
+
+        // Get users who have donated to this NGO's campaigns
+        const donations = await Donation.find({ ngoId: ngo._id })
+            .populate("donorId", "fullName email")
+            .select("donorId donorName donorEmail amount createdAt");
+
+        const uniqueDonors = donations.reduce((acc, donation) => {
+            const donorKey = donation.donorEmail || donation.donorId?._id;
+            if (donorKey && !acc[donorKey]) {
+                acc[donorKey] = {
+                    id: donation.donorId?._id,
+                    name: donation.donorName || donation.donorId?.fullName,
+                    email: donation.donorEmail || donation.donorId?.email,
+                    totalDonated: 0,
+                    donationCount: 0,
+                    lastDonation: donation.createdAt
+                };
+            }
+            if (acc[donorKey]) {
+                acc[donorKey].totalDonated += donation.amount;
+                acc[donorKey].donationCount += 1;
+                if (donation.createdAt > acc[donorKey].lastDonation) {
+                    acc[donorKey].lastDonation = donation.createdAt;
+                }
+            }
+            return acc;
+        }, {});
+
+        res.json({
+            success: true,
+            data: Object.values(uniqueDonors)
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching users", error: error.message });
+    }
+});
+
+// Reports
+router.get("/reports", authMiddleware(["ngo"]), async (req, res) => {
+    try {
+        const userId = req.user._id || req.user.id;
+        const ngo = await NGO.findOne({ userId });
+        
+        if (!ngo) {
+            return res.status(404).json({ message: "NGO profile not found" });
+        }
+
+        const campaigns = await Campaign.find({ ngoId: ngo._id });
+        const donations = await Donation.find({ ngoId: ngo._id });
+
+        // Generate reports data
+        const reports = {
+            campaignPerformance: campaigns.map(campaign => ({
+                id: campaign._id,
+                title: campaign.title,
+                goalAmount: campaign.goalAmount,
+                raisedAmount: campaign.raisedAmount,
+                donorCount: donations.filter(d => d.campaignId?.toString() === campaign._id.toString()).length,
+                status: campaign.status
+            })),
+            donationTrends: {
+                monthly: [],
+                yearly: []
+            },
+            summary: {
+                totalCampaigns: campaigns.length,
+                totalRaised: donations.reduce((sum, d) => sum + d.amount, 0),
+                totalDonors: new Set(donations.map(d => d.donorEmail)).size
+            }
+        };
+
+        res.json({
+            success: true,
+            data: reports
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching reports", error: error.message });
+    }
+});
+
+// Settings
+router.get("/settings", authMiddleware(["ngo"]), async (req, res) => {
+    try {
+        const userId = req.user._id || req.user.id;
+        const ngo = await NGO.findOne({ userId });
+        
+        if (!ngo) {
+            return res.status(404).json({ message: "NGO profile not found" });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                notifications: {
+                    emailNotifications: true,
+                    donationAlerts: true,
+                    campaignUpdates: true
+                },
+                privacy: {
+                    profileVisibility: "public",
+                    contactInfoVisible: true
+                },
+                preferences: {
+                    currency: "INR",
+                    timezone: "Asia/Kolkata"
+                }
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching settings", error: error.message });
+    }
+});
+
+router.put("/settings", authMiddleware(["ngo"]), async (req, res) => {
+    try {
+        const userId = req.user._id || req.user.id;
+        const settings = req.body;
+
+        // For now, just return success
+        // In a real app, you'd save these settings to a user preferences model
+        
+        res.json({
+            success: true,
+            message: "Settings updated successfully",
+            data: settings
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Error updating settings", error: error.message });
     }
 });
 

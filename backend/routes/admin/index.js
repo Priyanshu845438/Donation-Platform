@@ -15,6 +15,10 @@ const campaignRoutes = require("./campaigns");
 const noticeRoutes = require("./notice");
 const reportsRoutes = require("./reports");
 const testUploadRoutes = require("./test-uploads");
+const settingsRoutes = require("./settings");
+const systemRoutes = require("./system");
+const activitiesRoutes = require("./activities");
+const analyticsRoutes = require("./analytics");
 
 const router = express.Router();
 
@@ -2470,6 +2474,10 @@ router.use("/campaigns", campaignRoutes);
 router.use("/notices", noticeRoutes);
 router.use("/reports", reportsRoutes);
 router.use("/test-uploads", testUploadRoutes);
+router.use("/settings", settingsRoutes);
+router.use("/system", systemRoutes);
+router.use("/activities", activitiesRoutes);
+router.use("/analytics", analyticsRoutes);
 
 // Data Export and Backup Management
 router.get("/dashboard/export/:type", authMiddleware(["admin"]), async (req, res) => {

@@ -1,4 +1,3 @@
-
 class AppError extends Error {
     constructor(message, statusCode) {
         super(message);
@@ -79,30 +78,90 @@ const globalErrorHandler = (err, req, res, next) => {
     }
 };
 
-// Helper functions for consistent API responses
+// Success response helper
 const createSuccessResponse = (res, statusCode, data) => {
     return res.status(statusCode).json({
-        status: 'success',
+        success: true,
         ...data
     });
 };
 
+// Error response helper
 const createErrorResponse = (res, statusCode, message, details = null) => {
+    return res.status(statusCode).json({
+        success: false,
+        message,
+        ...(details && { details })
+    });
+};
+
+// Centralized error handling middleware
+const errorHandler = (err, req, res, next) => {
+    console.error('Error:', err);
+
+    // Handle mongoose validation errors
+    if (err.name === 'ValidationError') {
+        const messages = Object.values(err.errors).map(error => error.message);
+        return createErrorResponse(res, 400, 'Validation Error', messages);
+    }
+
+    // Handle mongoose cast errors
+    if (err.name === 'CastError') {
+        return createErrorResponse(res, 400, 'Invalid ID format');
+    }
+
+    // Handle duplicate key errors
+    if (err.code === 11000) {
+        const field = Object.keys(err.keyPattern)[0];
+        return createErrorResponse(res, 409, `${field} already exists`);
+    }
+
+    // Handle JWT errors
+    if (err.name === 'JsonWebTokenError') {
+        return createErrorResponse(res, 401, 'Invalid token');
+    }
+
+    if (err.name === 'TokenExpiredError') {
+        return createErrorResponse(res, 401, 'Token expired');
+    }
+
+    // Default server error
+    return createErrorResponse(res, 500, 'Internal Server Error');
+};
+
+// Additional helper functions
+const successResponse = (res, statusCode = 200, message = 'Success', data = null) => {
     const response = {
-        status: 'fail',
+        success: true,
         message
     };
-    
-    if (details && process.env.NODE_ENV === 'development') {
-        response.details = details;
+
+    if (data) {
+        response.data = data;
     }
-    
+
     return res.status(statusCode).json(response);
 };
 
-module.exports = { 
-    AppError, 
-    globalErrorHandler, 
-    createSuccessResponse, 
-    createErrorResponse 
+const errorResponse = (res, statusCode = 500, message = 'Internal Server Error', error = null) => {
+    const response = {
+        success: false,
+        message
+    };
+
+    if (error && process.env.NODE_ENV === 'development') {
+        response.error = error;
+    }
+
+    return res.status(statusCode).json(response);
+};
+
+module.exports = {
+    AppError,
+    globalErrorHandler,
+    createSuccessResponse,
+    createErrorResponse,
+    successResponse,
+    errorResponse,
+    errorHandler
 };

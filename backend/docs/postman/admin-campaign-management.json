@@ -1,0 +1,450 @@
+
+{
+  "info": {
+    "name": "Admin Campaign Management",
+    "description": "Complete admin campaign management endpoints with authentication and full CRUD operations",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{admin_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://0.0.0.0:5000",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "campaign_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('admin_token', response.token);",
+                  "    console.log('✅ Admin login successful');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Campaign Management",
+      "item": [
+        {
+          "name": "Get All Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns?page=1&limit=10&status=active&approvalStatus=pending&search=education",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of campaigns per page (default: 10)"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by status (active, inactive)"
+                },
+                {
+                  "key": "approvalStatus",
+                  "value": "pending",
+                  "description": "Filter by approval status (pending, approved, rejected)"
+                },
+                {
+                  "key": "search",
+                  "value": "education",
+                  "description": "Search in title, description"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Campaign",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('campaign_id', response.campaign._id || response.campaign.id);",
+                  "    console.log('✅ Campaign created successfully');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Education for Rural Children\",\n  \"campaignName\": \"Rural Education Initiative\",\n  \"description\": \"Providing quality education to underprivileged children in rural areas\",\n  \"category\": \"Education\",\n  \"goalAmount\": 500000,\n  \"targetAmount\": 500000,\n  \"endDate\": \"2024-12-31\",\n  \"location\": \"Rural Maharashtra\",\n  \"beneficiaries\": \"200 children\",\n  \"importance\": \"Education is fundamental for breaking the poverty cycle\",\n  \"explainStory\": \"This campaign aims to establish schools and provide educational resources to children in remote villages who lack access to quality education.\",\n  \"contactNumber\": \"9876543210\",\n  \"donationLink\": \"https://example.com/donate/campaign-123\",\n  \"createdBy\": \"6871e77eee061f384becdc35\",\n  \"ngoId\": \"6871e77eee061f384becdc37\",\n  \"approvalStatus\": \"approved\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns"]
+            }
+          }
+        },
+        {
+          "name": "Get Campaign Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/{{campaign_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "{{campaign_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Campaign",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Campaign Title\",\n  \"description\": \"Updated campaign description\",\n  \"targetAmount\": 600000,\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/{{campaign_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "{{campaign_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Campaign",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/{{campaign_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "{{campaign_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Campaign Approval",
+      "item": [
+        {
+          "name": "Approve Campaign",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\",\n  \"adminNote\": \"Campaign approved. Well-documented objectives and clear beneficiary details.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/{{campaign_id}}/approval",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "{{campaign_id}}", "approval"]
+            }
+          }
+        },
+        {
+          "name": "Reject Campaign",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"rejected\",\n  \"adminNote\": \"Insufficient documentation provided. Please provide more details about the beneficiaries and budget breakdown.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/{{campaign_id}}/approval",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "{{campaign_id}}", "approval"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Campaign Status Management",
+      "item": [
+        {
+          "name": "Toggle Campaign Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/{{campaign_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "{{campaign_id}}", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Share Link Management",
+      "item": [
+        {
+          "name": "Generate Campaign Share Link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customDesign\": {\n    \"theme\": \"default\",\n    \"layout\": \"standard\",\n    \"html\": \"<div>Custom HTML content</div>\",\n    \"css\": \".custom-style { color: blue; }\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/{{campaign_id}}/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "{{campaign_id}}", "share"]
+            }
+          }
+        },
+        {
+          "name": "Customize Campaign Share Page",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customDesign\": {\n    \"html\": \"<div class='campaign-header'><h1>{{campaign.title}}</h1></div>\",\n    \"css\": \".campaign-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; }\",\n    \"theme\": \"modern\",\n    \"layout\": \"card\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/{{campaign_id}}/customize",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "{{campaign_id}}", "customize"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bulk Operations",
+      "item": [
+        {
+          "name": "Generate Multiple Share Links",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campaignIds\": [\"{{campaign_id}}\", \"6871e77eee061f384becdc40\"],\n  \"customDesign\": {\n    \"theme\": \"bulk-generated\",\n    \"layout\": \"standard\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/bulk/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "bulk", "share"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics & Reports",
+      "item": [
+        {
+          "name": "Get Share Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/analytics/shares?startDate=2024-01-01&endDate=2024-12-31&campaignId={{campaign_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "analytics", "shares"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01",
+                  "description": "Start date for analytics (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "description": "End date for analytics (YYYY-MM-DD)"
+                },
+                {
+                  "key": "campaignId",
+                  "value": "{{campaign_id}}",
+                  "description": "Optional: Specific campaign ID"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Campaign Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/campaigns/statistics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "campaigns", "statistics"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

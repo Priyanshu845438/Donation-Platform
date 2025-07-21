@@ -1,0 +1,495 @@
+
+{
+  "info": {
+    "name": "User Task Management",
+    "description": "Complete user task and calendar management endpoints for all user types",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://0.0.0.0:5000",
+      "type": "string"
+    },
+    {
+      "key": "user_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "task_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Task Management",
+      "item": [
+        {
+          "name": "Get My Tasks",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.tasks && response.tasks.length > 0) {",
+                  "        pm.collectionVariables.set('task_id', response.tasks[0]._id);",
+                  "        console.log('✅ Tasks retrieved successfully');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/tasks?page=1&limit=10&status=pending&priority=high&category=meeting",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "tasks"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Tasks per page (default: 10)"
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "description": "Filter by status: pending, in-progress, completed, cancelled"
+                },
+                {
+                  "key": "priority",
+                  "value": "high",
+                  "description": "Filter by priority: low, medium, high, urgent"
+                },
+                {
+                  "key": "category",
+                  "value": "meeting",
+                  "description": "Filter by category: meeting, review, approval, maintenance, deadline, other"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search in title, description, notes",
+                  "disabled": true
+                },
+                {
+                  "key": "startDate",
+                  "value": "",
+                  "description": "Filter from date (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": "",
+                  "description": "Filter to date (YYYY-MM-DD)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get user's tasks with filtering, search, and pagination"
+          }
+        },
+        {
+          "name": "Create Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('task_id', response.task._id);",
+                  "    console.log('✅ Task created successfully');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Team Meeting\",\n  \"description\": \"Monthly team sync meeting to discuss project progress\",\n  \"dueDate\": \"2024-01-25\",\n  \"dueTime\": \"14:00\",\n  \"priority\": \"high\",\n  \"category\": \"meeting\",\n  \"reminderBefore\": 30,\n  \"isRecurring\": true,\n  \"recurringType\": \"monthly\",\n  \"recurringEndDate\": \"2024-12-31\",\n  \"notes\": \"Prepare monthly report before the meeting\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "tasks"]
+            },
+            "description": "Create a new task with optional recurring settings"
+          }
+        },
+        {
+          "name": "Get Single Task",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/tasks/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "tasks", "{{task_id}}"]
+            },
+            "description": "Get details of a specific task"
+          }
+        },
+        {
+          "name": "Update Task",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Team Meeting\",\n  \"description\": \"Updated description for the team meeting\",\n  \"priority\": \"urgent\",\n  \"status\": \"in-progress\",\n  \"notes\": \"Added new agenda items\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/tasks/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "tasks", "{{task_id}}"]
+            },
+            "description": "Update task details"
+          }
+        },
+        {
+          "name": "Mark Task Completed",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/tasks/{{task_id}}/complete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "tasks", "{{task_id}}", "complete"]
+            },
+            "description": "Mark a task as completed"
+          }
+        },
+        {
+          "name": "Delete Task",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/tasks/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "tasks", "{{task_id}}"]
+            },
+            "description": "Delete a task permanently"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Calendar Views",
+      "item": [
+        {
+          "name": "Get Calendar View",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/tasks/calendar/view?year=2024&month=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "tasks", "calendar", "view"],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2024",
+                  "description": "Year (default: current year)"
+                },
+                {
+                  "key": "month",
+                  "value": "1",
+                  "description": "Month 1-12 (default: current month)"
+                }
+              ]
+            },
+            "description": "Get monthly calendar view with tasks grouped by date"
+          }
+        },
+        {
+          "name": "Get Today's Tasks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/tasks/today/list",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "tasks", "today", "list"]
+            },
+            "description": "Get today's tasks and overdue tasks"
+          }
+        },
+        {
+          "name": "Get Upcoming Tasks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/tasks/upcoming/list",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "tasks", "upcoming", "list"]
+            },
+            "description": "Get upcoming tasks for the next 7 days"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Task Examples",
+      "item": [
+        {
+          "name": "Create Simple Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Review Campaign Proposal\",\n  \"description\": \"Review and approve the new education campaign proposal\",\n  \"dueDate\": \"2024-01-20\",\n  \"dueTime\": \"10:00\",\n  \"priority\": \"high\",\n  \"category\": \"review\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "tasks"]
+            },
+            "description": "Create a simple one-time task"
+          }
+        },
+        {
+          "name": "Create Recurring Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Weekly Status Report\",\n  \"description\": \"Submit weekly status report to management\",\n  \"dueDate\": \"2024-01-26\",\n  \"dueTime\": \"17:00\",\n  \"priority\": \"medium\",\n  \"category\": \"deadline\",\n  \"isRecurring\": true,\n  \"recurringType\": \"weekly\",\n  \"recurringEndDate\": \"2024-12-31\",\n  \"reminderBefore\": 60,\n  \"notes\": \"Include metrics from all active campaigns\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "tasks"]
+            },
+            "description": "Create a recurring weekly task"
+          }
+        },
+        {
+          "name": "Create Urgent Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Emergency Server Maintenance\",\n  \"description\": \"Urgent server maintenance required due to security update\",\n  \"dueDate\": \"2024-01-18\",\n  \"dueTime\": \"08:00\",\n  \"priority\": \"urgent\",\n  \"category\": \"maintenance\",\n  \"reminderBefore\": 15,\n  \"notes\": \"Coordinate with IT team before starting\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "tasks"]
+            },
+            "description": "Create an urgent priority task"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Search & Filter Examples",
+      "item": [
+        {
+          "name": "Search Tasks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/tasks?search=meeting&status=pending",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "tasks"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "meeting",
+                  "description": "Search for tasks containing 'meeting'"
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "description": "Only show pending tasks"
+                }
+              ]
+            },
+            "description": "Search for tasks with specific keywords and status"
+          }
+        },
+        {
+          "name": "Filter by Date Range",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/tasks?startDate=2024-01-15&endDate=2024-01-31&priority=high",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "tasks"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-15",
+                  "description": "Tasks from this date"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-01-31",
+                  "description": "Tasks until this date"
+                },
+                {
+                  "key": "priority",
+                  "value": "high",
+                  "description": "Only high priority tasks"
+                }
+              ]
+            },
+            "description": "Filter tasks by date range and priority"
+          }
+        },
+        {
+          "name": "Filter by Category",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/tasks?category=review&status=in-progress",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "tasks"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "review",
+                  "description": "Only review category tasks"
+                },
+                {
+                  "key": "status",
+                  "value": "in-progress",
+                  "description": "Only in-progress tasks"
+                }
+              ]
+            },
+            "description": "Filter tasks by specific category and status"
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{user_token}}",
+        "type": "string"
+      }
+    ]
+  }
+}

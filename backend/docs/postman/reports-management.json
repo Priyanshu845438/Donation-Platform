@@ -1,0 +1,722 @@
+
+{
+  "info": {
+    "name": "Reports Management API",
+    "description": "Comprehensive reports system for donation platform with PDF/Excel export capabilities",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://0.0.0.0:5000",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "User Management Reports",
+      "item": [
+        {
+          "name": "Get User Report (JSON)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/users?startDate=2024-01-01&endDate=2024-12-31&role=ngo&status=active",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "users"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01",
+                  "description": "Start date for filtering (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "description": "End date for filtering (YYYY-MM-DD)"
+                },
+                {
+                  "key": "role",
+                  "value": "ngo",
+                  "description": "Filter by user role (ngo, company, donor, admin)"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by status (active, inactive)"
+                },
+                {
+                  "key": "approvalStatus",
+                  "value": "approved",
+                  "description": "Filter by approval status (pending, approved, rejected)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get comprehensive user management report with filtering options"
+          }
+        },
+        {
+          "name": "Export User Report (PDF)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/users?export=pdf&startDate=2024-01-01&endDate=2024-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "users"],
+              "query": [
+                {
+                  "key": "export",
+                  "value": "pdf",
+                  "description": "Export format (pdf, excel)"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31"
+                }
+              ]
+            },
+            "description": "Export user report as PDF file"
+          }
+        },
+        {
+          "name": "Export User Report (Excel)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/users?export=excel&role=ngo",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "users"],
+              "query": [
+                {
+                  "key": "export",
+                  "value": "excel"
+                },
+                {
+                  "key": "role",
+                  "value": "ngo"
+                }
+              ]
+            },
+            "description": "Export user report as Excel file"
+          }
+        }
+      ]
+    },
+    {
+      "name": "NGO Reports",
+      "item": [
+        {
+          "name": "Get NGO Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/ngos?status=active&ngoType=Trust&certification=80G",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "ngos"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by status (active, inactive)"
+                },
+                {
+                  "key": "ngoType",
+                  "value": "Trust",
+                  "description": "Filter by NGO type"
+                },
+                {
+                  "key": "certification",
+                  "value": "80G",
+                  "description": "Filter by certification type"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get NGO report with campaign statistics"
+          }
+        },
+        {
+          "name": "Export NGO Report (PDF)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/ngos?export=pdf",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "ngos"],
+              "query": [
+                {
+                  "key": "export",
+                  "value": "pdf"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Export NGO Report (Excel)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/ngos?export=excel",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "ngos"],
+              "query": [
+                {
+                  "key": "export",
+                  "value": "excel"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Campaign Reports",
+      "item": [
+        {
+          "name": "Get Campaign Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/campaigns?status=active&category=Education&approvalStatus=approved&minAmount=10000&maxAmount=100000",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "campaigns"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by campaign status"
+                },
+                {
+                  "key": "category",
+                  "value": "Education",
+                  "description": "Filter by campaign category"
+                },
+                {
+                  "key": "approvalStatus",
+                  "value": "approved",
+                  "description": "Filter by approval status"
+                },
+                {
+                  "key": "minAmount",
+                  "value": "10000",
+                  "description": "Minimum target amount"
+                },
+                {
+                  "key": "maxAmount",
+                  "value": "100000",
+                  "description": "Maximum target amount"
+                },
+                {
+                  "key": "ngoId",
+                  "value": "NGO_ID_HERE",
+                  "description": "Filter by specific NGO",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get campaign report with donation statistics"
+          }
+        },
+        {
+          "name": "Export Campaign Report (Excel)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/campaigns?export=excel&startDate=2024-01-01",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "campaigns"],
+              "query": [
+                {
+                  "key": "export",
+                  "value": "excel"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Donation Reports",
+      "item": [
+        {
+          "name": "Get Donation Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/donations?startDate=2024-01-01&endDate=2024-12-31&status=Completed&paymentMethod=UPI&minAmount=100&maxAmount=50000",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "donations"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01",
+                  "description": "Start date for donation filtering"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "description": "End date for donation filtering"
+                },
+                {
+                  "key": "status",
+                  "value": "Completed",
+                  "description": "Filter by donation status (Pending, Completed, Failed)"
+                },
+                {
+                  "key": "paymentMethod",
+                  "value": "UPI",
+                  "description": "Filter by payment method"
+                },
+                {
+                  "key": "minAmount",
+                  "value": "100",
+                  "description": "Minimum donation amount"
+                },
+                {
+                  "key": "maxAmount",
+                  "value": "50000",
+                  "description": "Maximum donation amount"
+                },
+                {
+                  "key": "donorId",
+                  "value": "DONOR_ID_HERE",
+                  "description": "Filter by specific donor",
+                  "disabled": true
+                },
+                {
+                  "key": "campaignId",
+                  "value": "CAMPAIGN_ID_HERE",
+                  "description": "Filter by specific campaign",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get comprehensive donation report with analytics"
+          }
+        },
+        {
+          "name": "Export Donation Report (PDF)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/donations?export=pdf&status=Completed",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "donations"],
+              "query": [
+                {
+                  "key": "export",
+                  "value": "pdf"
+                },
+                {
+                  "key": "status",
+                  "value": "Completed"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Export Donation Report (Excel)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/donations?export=excel&startDate=2024-01-01&endDate=2024-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "donations"],
+              "query": [
+                {
+                  "key": "export",
+                  "value": "excel"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Financial Reports",
+      "item": [
+        {
+          "name": "Get Financial Summary Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/financial?startDate=2024-01-01&endDate=2024-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "financial"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01",
+                  "description": "Start date for financial period"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "description": "End date for financial period"
+                }
+              ]
+            },
+            "description": "Get comprehensive financial report with NGO-wise collection and trends"
+          }
+        },
+        {
+          "name": "Export Financial Report (Excel)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/financial?export=excel&startDate=2024-01-01",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "financial"],
+              "query": [
+                {
+                  "key": "export",
+                  "value": "excel"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Government Compliance Reports",
+      "item": [
+        {
+          "name": "Get Tax Compliance Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/compliance?startDate=2024-04-01&endDate=2025-03-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "compliance"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-04-01",
+                  "description": "Financial year start date"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-03-31",
+                  "description": "Financial year end date"
+                }
+              ]
+            },
+            "description": "Get government compliance report for 80G and 12A certificates"
+          }
+        },
+        {
+          "name": "Export Compliance Report (Excel)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/compliance?export=excel&startDate=2024-04-01&endDate=2025-03-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "compliance"],
+              "query": [
+                {
+                  "key": "export",
+                  "value": "excel"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-04-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-03-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Activity Reports",
+      "item": [
+        {
+          "name": "Get Activity Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/activities?startDate=2024-01-01&endDate=2024-12-31&action=donation",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "activities"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31"
+                },
+                {
+                  "key": "action",
+                  "value": "donation",
+                  "description": "Filter by specific action type"
+                },
+                {
+                  "key": "userId",
+                  "value": "USER_ID_HERE",
+                  "description": "Filter by specific user",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get platform activity report with user actions"
+          }
+        },
+        {
+          "name": "Export Activity Report (Excel)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/activities?export=excel",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "activities"],
+              "query": [
+                {
+                  "key": "export",
+                  "value": "excel"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard Reports",
+      "item": [
+        {
+          "name": "Get Dashboard Summary Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "dashboard"]
+            },
+            "description": "Get overall platform dashboard report"
+          }
+        },
+        {
+          "name": "Export Dashboard Report (PDF)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/dashboard?export=pdf",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "dashboard"],
+              "query": [
+                {
+                  "key": "export",
+                  "value": "pdf"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Export Dashboard Report (Excel)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/dashboard?export=excel",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "dashboard"],
+              "query": [
+                {
+                  "key": "export",
+                  "value": "excel"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

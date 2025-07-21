@@ -10,6 +10,8 @@ const ShareLink = require("../models/ShareLink");
 const bcrypt = require("bcryptjs");
 const { createErrorResponse, createSuccessResponse } = require("../utils/errorHandler");
 const nodemailer = require("nodemailer");
+const fs = require("fs");
+const path = require("path");
 
 class AdminController {
     // Dashboard analytics
@@ -197,9 +199,9 @@ class AdminController {
             // Create role-specific profile
             let profileData = null;
             if (role.toLowerCase() === "ngo") {
-                profileData = await this.createNGOProfile(newUser, { fullName, email, phoneNumber });
+                profileData = await AdminController.createNGOProfile(newUser, { fullName, email, phoneNumber });
             } else if (role.toLowerCase() === "company") {
-                profileData = await this.createCompanyProfile(newUser, { fullName, email, phoneNumber });
+                profileData = await AdminController.createCompanyProfile(newUser, { fullName, email, phoneNumber });
             }
 
             // Log activity
@@ -292,7 +294,7 @@ class AdminController {
             });
 
             // Send email notification
-            await this.sendApprovalEmail(user, status);
+            await AdminController.sendApprovalEmail(user, status);
 
             return createSuccessResponse(res, 200, {
                 message: `User ${status} successfully`,
@@ -335,6 +337,430 @@ class AdminController {
         }
     }
 
+    // Password Management
+    static async changeUserPassword(req, res) {
+        try {
+            const { userId } = req.params;
+            const { newPassword, sendEmail = true } = req.body;
+
+            if (!newPassword || newPassword.length < 8) {
+                return createErrorResponse(res, 400, "Password must be at least 8 characters long");
+            }
+
+            // Get security settings
+            const securitySettings = await Settings.findOne({ category: "security" });
+            if (securitySettings) {
+                const settings = securitySettings.settings;
+
+                if (newPassword.length < (settings.get("password_min_length") || 8)) {
+                    return createErrorResponse(res, 400, `Password must be at least ${settings.get("password_min_length") || 8} characters long`);
+                }
+
+                if (settings.get("password_require_uppercase") && !/[A-Z]/.test(newPassword)) {
+                    return createErrorResponse(res, 400, "Password must contain at least one uppercase letter");
+                }
+
+                if (settings.get("password_require_lowercase") && !/[a-z]/.test(newPassword)) {
+                    return createErrorResponse(res, 400, "Password must contain at least one lowercase letter");
+                }
+
+                if (settings.get("password_require_numbers") && !/\d/.test(newPassword)) {
+                    return createErrorResponse(res, 400, "Password must contain at least one number");
+                }
+
+                if (settings.get("password_require_symbols") && !/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+                    return createErrorResponse(res, 400, "Password must contain at least one symbol");
+                }
+            }
+
+            const user = await User.findById(userId);
+            if (!user) {
+                return createErrorResponse(res, 404, "User not found");
+            }
+
+            // Prevent admin from changing their own password this way
+            if (user._id.toString() === req.user.id) {
+                return createErrorResponse(res, 400, "Cannot change your own password using this method");
+            }
+
+            const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+            await User.findByIdAndUpdate(userId, {
+                password: hashedPassword,
+                passwordChangedAt: new Date()
+            });
+
+            // Log activity
+            await Activity.create({
+                userId: req.user.id,
+                action: "admin_change_user_password",
+                description: `Admin changed password for user: ${user.email}`,
+                metadata: { targetUserId: userId }
+            });
+
+            // Send email notification
+            if (sendEmail) {
+                await AdminController.sendPasswordChangeNotification(user, newPassword);
+            }
+
+            return createSuccessResponse(res, 200, {
+                message: "User password changed successfully",
+                emailSent: sendEmail
+            });
+
+        } catch (error) {
+            console.error("Change user password error:", error);
+            return createErrorResponse(res, 500, "Failed to change user password", error.message);
+        }
+    }
+
+    // Settings Management
+    static async getAllSettings(req, res) {
+        try {
+            const settings = await Settings.find().sort({ category: 1 });
+
+            const settingsMap = {};
+            settings.forEach(setting => {
+                settingsMap[setting.category] = Object.fromEntries(setting.settings);
+            });
+
+            return createSuccessResponse(res, 200, {
+                message: "Settings retrieved successfully",
+                settings: settingsMap
+            });
+
+        } catch (error) {
+            console.error("Get settings error:", error);
+            return createErrorResponse(res, 500, "Failed to retrieve settings", error.message);
+        }
+    }
+
+    static async getSettingsByCategory(req, res) {
+        try {
+            const { category } = req.params;
+
+            const settings = await Settings.findOne({ category });
+
+            if (!settings) {
+                return createErrorResponse(res, 404, "Settings category not found");
+            }
+
+            return createSuccessResponse(res, 200, {
+                message: "Settings retrieved successfully",
+                category,
+                settings: Object.fromEntries(settings.settings)
+            });
+
+        } catch (error) {
+            console.error("Get category settings error:", error);
+            return createErrorResponse(res, 500, "Failed to retrieve settings", error.message);
+        }
+    }
+
+    static async updateSettings(req, res) {
+        try {
+            const { category, settings } = req.body;
+
+            if (!category || !settings) {
+                return createErrorResponse(res, 400, "Category and settings are required");
+            }
+
+            const updatedSettings = await Settings.findOneAndUpdate(
+                { category },
+                { 
+                    settings: new Map(Object.entries(settings)),
+                    updatedBy: req.user.id,
+                    lastModified: new Date()
+                },
+                { new: true, upsert: true }
+            );
+
+            await Activity.create({
+                userId: req.user.id,
+                action: "admin_update_settings",
+                description: `Admin updated ${category} settings`,
+                metadata: { category, settingsKeys: Object.keys(settings) }
+            });
+
+            return createSuccessResponse(res, 200, {
+                message: "Settings updated successfully",
+                category,
+                settings: Object.fromEntries(updatedSettings.settings)
+            });
+
+        } catch (error) {
+            console.error("Update settings error:", error);
+            return createErrorResponse(res, 500, "Failed to update settings", error.message);
+        }
+    }
+
+    static async updateMultipleSettings(req, res) {
+        try {
+            const { settingsData } = req.body;
+
+            if (!settingsData || typeof settingsData !== 'object') {
+                return createErrorResponse(res, 400, "Settings data is required");
+            }
+
+            const updatePromises = [];
+            const updatedCategories = [];
+
+            for (const [category, settings] of Object.entries(settingsData)) {
+                updatePromises.push(
+                    Settings.findOneAndUpdate(
+                        { category },
+                        { 
+                            settings: new Map(Object.entries(settings)),
+                            updatedBy: req.user.id,
+                            lastModified: new Date()
+                        },
+                        { new: true, upsert: true }
+                    )
+                );
+                updatedCategories.push(category);
+            }
+
+            await Promise.all(updatePromises);
+
+            await Activity.create({
+                userId: req.user.id,
+                action: "admin_bulk_update_settings",
+                description: `Admin updated multiple settings categories: ${updatedCategories.join(', ')}`,
+                metadata: { categories: updatedCategories }
+            });
+
+            return createSuccessResponse(res, 200, {
+                message: "Settings updated successfully",
+                updatedCategories
+            });
+
+        } catch (error) {
+            console.error("Update multiple settings error:", error);
+            return createErrorResponse(res, 500, "Failed to update settings", error.message);
+        }
+    }
+
+    // Logo and Branding Upload
+    static async uploadLogo(req, res) {
+        try {
+            if (!req.file) {
+                return createErrorResponse(res, 400, "No logo file provided");
+            }
+
+            const logoPath = req.file.path;
+
+            // Update branding settings
+            await Settings.findOneAndUpdate(
+                { category: "branding" },
+                { 
+                    $set: {
+                        "settings.logo_url": logoPath,
+                        updatedBy: req.user.id,
+                        lastModified: new Date()
+                    }
+                },
+                { upsert: true }
+            );
+
+            await Activity.create({
+                userId: req.user.id,
+                action: "admin_upload_logo",
+                description: "Admin uploaded new logo",
+                metadata: { logoPath }
+            });
+
+            return createSuccessResponse(res, 200, {
+                message: "Logo uploaded successfully",
+                logoPath
+            });
+
+        } catch (error) {
+            console.error("Upload logo error:", error);
+            return createErrorResponse(res, 500, "Failed to upload logo", error.message);
+        }
+    }
+
+    static async uploadFavicon(req, res) {
+        try {
+            if (!req.file) {
+                return createErrorResponse(res, 400, "No favicon file provided");
+            }
+
+            const faviconPath = req.file.path;
+
+            // Update branding settings
+            await Settings.findOneAndUpdate(
+                { category: "branding" },
+                { 
+                    $set: {
+                        "settings.favicon_url": faviconPath,
+                        updatedBy: req.user.id,
+                        lastModified: new Date()
+                    }
+                },
+                { upsert: true }
+            );
+
+            await Activity.create({
+                userId: req.user.id,
+                action: "admin_upload_favicon",
+                description: "Admin uploaded new favicon",
+                metadata: { faviconPath }
+            });
+
+            return createSuccessResponse(res, 200, {
+                message: "Favicon uploaded successfully",
+                faviconPath
+            });
+
+        } catch (error) {
+            console.error("Upload favicon error:", error);
+            return createErrorResponse(res, 500, "Failed to upload favicon", error.message);
+        }
+    }
+
+    // Environment Configuration
+    static async updateEnvironmentConfig(req, res) {
+        try {
+            const { envData } = req.body;
+
+            if (!envData || typeof envData !== 'object') {
+                return createErrorResponse(res, 400, "Environment data is required");
+            }
+
+            // Update environment settings
+            await Settings.findOneAndUpdate(
+                { category: "environment" },
+                { 
+                    settings: new Map(Object.entries(envData)),
+                    updatedBy: req.user.id,
+                    lastModified: new Date()
+                },
+                { upsert: true }
+            );
+
+            await Activity.create({
+                userId: req.user.id,
+                action: "admin_update_environment",
+                description: "Admin updated environment configuration",
+                metadata: { updatedKeys: Object.keys(envData) }
+            });
+
+            return createSuccessResponse(res, 200, {
+                message: "Environment configuration updated successfully"
+            });
+
+        } catch (error) {
+            console.error("Update environment config error:", error);
+            return createErrorResponse(res, 500, "Failed to update environment configuration", error.message);
+        }
+    }
+
+    // Rate Limiting Configuration
+    static async updateRateLimiting(req, res) {
+        try {
+            const { rateLimitConfig } = req.body;
+
+            if (!rateLimitConfig || typeof rateLimitConfig !== 'object') {
+                return createErrorResponse(res, 400, "Rate limit configuration is required");
+            }
+
+            // Update rate limiting settings
+            await Settings.findOneAndUpdate(
+                { category: "rate_limiting" },
+                { 
+                    settings: new Map(Object.entries(rateLimitConfig)),
+                    updatedBy: req.user.id,
+                    lastModified: new Date()
+                },
+                { upsert: true }
+            );
+
+            await Activity.create({
+                userId: req.user.id,
+                action: "admin_update_rate_limiting",
+                description: "Admin updated rate limiting configuration",
+                metadata: { config: rateLimitConfig }
+            });
+
+            return createSuccessResponse(res, 200, {
+                message: "Rate limiting configuration updated successfully",
+                config: rateLimitConfig
+            });
+
+        } catch (error) {
+            console.error("Update rate limiting error:", error);
+            return createErrorResponse(res, 500, "Failed to update rate limiting configuration", error.message);
+        }
+    }
+
+    // System Configuration
+    static async getSystemInfo(req, res) {
+        try {
+            const systemInfo = {
+                nodeVersion: process.version,
+                platform: process.platform,
+                uptime: process.uptime(),
+                memoryUsage: process.memoryUsage(),
+                cpuUsage: process.cpuUsage(),
+                environment: process.env.NODE_ENV || "development"
+            };
+
+            return createSuccessResponse(res, 200, {
+                message: "System information retrieved successfully",
+                systemInfo
+            });
+
+        } catch (error) {
+            console.error("Get system info error:", error);
+            return createErrorResponse(res, 500, "Failed to retrieve system information", error.message);
+        }
+    }
+
+    static async resetSettings(req, res) {
+        try {
+            const { category } = req.params;
+
+            if (!category) {
+                return createErrorResponse(res, 400, "Settings category is required");
+            }
+
+            // Get default settings for the category
+            const defaults = Settings.getDefaultSettings();
+
+            if (!defaults[category]) {
+                return createErrorResponse(res, 404, "Settings category not found");
+            }
+
+            // Reset to default settings
+            await Settings.findOneAndUpdate(
+                { category },
+                { 
+                    settings: new Map(Object.entries(defaults[category])),
+                    updatedBy: req.user.id,
+                    lastModified: new Date()
+                },
+                { upsert: true }
+            );
+
+            await Activity.create({
+                userId: req.user.id,
+                action: "admin_reset_settings",
+                description: `Admin reset ${category} settings to defaults`,
+                metadata: { category }
+            });
+
+            return createSuccessResponse(res, 200, {
+                message: `${category} settings reset to defaults successfully`,
+                settings: defaults[category]
+            });
+
+        } catch (error) {
+            console.error("Reset settings error:", error);
+            return createErrorResponse(res, 500, "Failed to reset settings", error.message);
+        }
+    }
+
     // Notice System
     static async createNotice(req, res) {
         try {
@@ -356,7 +782,7 @@ class AdminController {
 
             // Send immediately if not scheduled
             if (!scheduledAt) {
-                await this.sendNoticeToUsers(notice);
+                await AdminController.sendNoticeToUsers(notice);
             }
 
             return createSuccessResponse(res, 201, {
@@ -397,60 +823,13 @@ class AdminController {
         }
     }
 
-    // Settings Management
-    static async getSettings(req, res) {
-        try {
-            const settings = await Settings.find().sort({ category: 1 });
-
-            return createSuccessResponse(res, 200, {
-                message: "Settings retrieved successfully",
-                settings
-            });
-
-        } catch (error) {
-            console.error("Get settings error:", error);
-            return createErrorResponse(res, 500, "Failed to retrieve settings", error.message);
-        }
-    }
-
-    static async updateSettings(req, res) {
-        try {
-            const { category, settings } = req.body;
-
-            const updatedSettings = await Settings.findOneAndUpdate(
-                { category },
-                { 
-                    settings: new Map(Object.entries(settings)),
-                    updatedBy: req.user.id
-                },
-                { new: true, upsert: true }
-            );
-
-            await Activity.create({
-                userId: req.user.id,
-                action: "admin_update_settings",
-                description: `Admin updated ${category} settings`,
-                metadata: { category, settings }
-            });
-
-            return createSuccessResponse(res, 200, {
-                message: "Settings updated successfully",
-                settings: updatedSettings
-            });
-
-        } catch (error) {
-            console.error("Update settings error:", error);
-            return createErrorResponse(res, 500, "Failed to update settings", error.message);
-        }
-    }
-
     // Helper methods
     static async sendApprovalEmail(user, status) {
         try {
             const emailSettings = await Settings.findOne({ category: "email" });
             if (!emailSettings) return;
 
-            const transporter = nodemailer.createTransporter({
+            const transporter = nodemailer.createTransport({
                 host: emailSettings.settings.get("smtp_host"),
                 port: emailSettings.settings.get("smtp_port"),
                 secure: emailSettings.settings.get("smtp_secure"),
@@ -473,6 +852,35 @@ class AdminController {
             });
         } catch (error) {
             console.error("Email sending error:", error);
+        }
+    }
+
+    static async sendPasswordChangeNotification(user, newPassword) {
+        try {
+            const emailSettings = await Settings.findOne({ category: "email" });
+            if (!emailSettings || !emailSettings.settings.get("enable_notifications")) return;
+
+            const transporter = nodemailer.createTransporter({
+                host: emailSettings.settings.get("smtp_host"),
+                port: emailSettings.settings.get("smtp_port"),
+                secure: emailSettings.settings.get("smtp_secure"),
+                auth: {
+                    user: process.env.EMAIL_ID,
+                    pass: process.env.EMAIL_PASS
+                }
+            });
+
+            const subject = "Password Changed by Administrator";
+            const message = `Hello ${user.fullName},\n\nYour password has been changed by an administrator.\n\nNew Password: ${newPassword}\n\nPlease change this password after logging in for security reasons.\n\nBest regards,\nAdmin Team`;
+
+            await transporter.sendMail({
+                from: emailSettings.settings.get("from_email"),
+                to: user.email,
+                subject,
+                text: message
+            });
+        } catch (error) {
+            console.error("Password change email error:", error);
         }
     }
 
@@ -940,7 +1348,676 @@ class AdminController {
         }
     }
 
-    // Add more methods for reports, campaign management, etc.
+    // Profile Image Upload Methods
+    static async uploadAdminProfileImage(req, res) {
+        try {
+            if (!req.file) {
+                return createErrorResponse(res, 400, "No profile image provided");
+            }
+
+            const adminId = req.user.id;
+            const profileImagePath = req.file.path;
+
+            // Update admin user profile
+            const updatedAdmin = await User.findByIdAndUpdate(
+                adminId,
+                { profileImage: profileImagePath },
+                { new: true }
+            ).select("-password");
+
+            if (!updatedAdmin) {
+                return createErrorResponse(res, 404, "Admin user not found");
+            }
+
+            await Activity.create({
+                userId: adminId,
+                action: "admin_upload_profile_image",
+                description: "Admin uploaded profile image",
+                metadata: { imagePath: profileImagePath }
+            });
+
+            return createSuccessResponse(res, 200, {
+                message: "Profile image uploaded successfully",
+                user: updatedAdmin,
+                imagePath: `/${profileImagePath}`
+            });
+
+        } catch (error) {
+            console.error("Upload admin profile image error:", error);
+            return createErrorResponse(res, 500, "Failed to upload profile image", error.message);
+        }
+    }
+
+    static async uploadUserProfileImage(req, res) {
+        try {
+            const { userId } = req.params;
+
+            if (!req.file) {
+                return createErrorResponse(res, 400, "No profile image provided");
+            }
+
+            const profileImagePath = req.file.path;
+
+            // Update user profile
+            const updatedUser = await User.findByIdAndUpdate(
+                userId,
+                { profileImage: profileImagePath },
+                { new: true }
+            ).select("-password");
+
+            if (!updatedUser) {
+                return createErrorResponse(res, 404, "User not found");
+            }
+
+            await Activity.create({
+                userId: req.user.id,
+                action: "admin_upload_user_profile_image",
+                description: `Admin uploaded profile image for user: ${updatedUser.email}`,
+                metadata: { targetUserId: userId, imagePath: profileImagePath }
+            });
+
+            return createSuccessResponse(res, 200, {
+                message: "User profile image uploaded successfully",
+                user: updatedUser,
+                imagePath: `/${profileImagePath}`
+            });
+
+        } catch (error) {
+            console.error("Upload user profile image error:", error);
+            return createErrorResponse(res, 500, "Failed to upload user profile image", error.message);
+        }
+    }
+
+    // Campaign Upload Methods
+    static async uploadCampaignImages(req, res) {
+        try {
+            const { campaignId } = req.params;
+
+            if (!req.files || req.files.length === 0) {
+                return createErrorResponse(res, 400, "No campaign images provided");
+            }
+
+            const campaign = await Campaign.findById(campaignId);
+            if (!campaign) {
+                return createErrorResponse(res, 404, "Campaign not found");
+            }
+
+            // Get uploaded image paths
+            const imagePaths = req.files.map(file => file.path);
+
+            // Update campaign with new images
+            const updatedCampaign = await Campaign.findByIdAndUpdate(
+                campaignId,
+                { 
+                    $push: { campaignImages: { $each: imagePaths } },
+                    updatedAt: new Date()
+                },
+                { new: true }
+            );
+
+            await Activity.create({
+                userId: req.user.id,
+                action: "admin_upload_campaign_images",
+                description: `Admin uploaded ${imagePaths.length} images for campaign: ${campaign.campaignName}`,
+                metadata: { campaignId, imagePaths }
+            });
+
+            return createSuccessResponse(res, 200, {
+                message: "Campaign images uploaded successfully",
+                campaign: updatedCampaign,
+                uploadedImages: imagePaths
+            });
+
+        } catch (error) {
+            console.error("Upload campaign images error:", error);
+            return createErrorResponse(res, 500, "Failed to upload campaign images", error.message);
+        }
+    }
+
+    static async uploadCampaignDocuments(req, res) {
+        try {
+            const { campaignId } = req.params;
+
+            if (!req.files || req.files.length === 0) {
+                return createErrorResponse(res, 400, "No documents provided");
+            }
+
+            const campaign = await Campaign.findById(campaignId);
+            if (!campaign) {
+                return createErrorResponse(res, 404, "Campaign not found");
+            }
+
+            // Get uploaded document paths
+            const documentPaths = req.files.map(file => file.path);
+
+            // Update campaign with new documents
+            const updatedCampaign = await Campaign.findByIdAndUpdate(
+                campaignId,
+                { 
+                    $push: { documents: { $each: documentPaths } },
+                    updatedAt: new Date()
+                },
+                { new: true }
+            );
+
+            await Activity.create({
+                userId: req.user.id,
+                action: "admin_upload_campaign_documents",
+                description: `Admin uploaded ${documentPaths.length} documents for campaign: ${campaign.campaignName}`,
+                metadata: { campaignId, documentPaths }
+            });
+
+            return createSuccessResponse(res, 200, {
+                message: "Campaign documents uploaded successfully",
+                campaign: updatedCampaign,
+                uploadedDocuments: documentPaths
+            });
+
+        } catch (error) {
+            console.error("Upload campaign documents error:", error);
+            return createErrorResponse(res, 500, "Failed to upload campaign documents", error.message);
+        }
+    }
+
+    static async uploadCampaignProof(req, res) {
+        try {
+            const { campaignId } = req.params;
+
+            if (!req.files || req.files.length === 0) {
+                return createErrorResponse(res, 400, "No proof documents provided");
+            }
+
+            const campaign = await Campaign.findById(campaignId);
+            if (!campaign) {
+                return createErrorResponse(res, 404, "Campaign not found");
+            }
+
+            // Get uploaded proof document paths
+            const proofPaths = req.files.map(file => file.path);
+
+            // Update campaign with new proof documents
+            const updatedCampaign = await Campaign.findByIdAndUpdate(
+                campaignId,
+                { 
+                    $push: { proofDocs: { $each: proofPaths } },
+                    updatedAt: new Date()
+                },
+                { new: true }
+            );
+
+            await Activity.create({
+                userId: req.user.id,
+                action: "admin_upload_campaign_proof",
+                description: `Admin uploaded ${proofPaths.length} proof documents for campaign: ${campaign.campaignName}`,
+                metadata: { campaignId, proofPaths }
+            });
+
+            return createSuccessResponse(res, 200, {
+                message: "Campaign proof documents uploaded successfully",
+                campaign: updatedCampaign,
+                uploadedProofDocs: proofPaths
+            });
+
+        } catch (error) {
+            console.error("Upload campaign proof error:", error);
+            return createErrorResponse(res, 500, "Failed to upload campaign proof documents", error.message);
+        }
+    }
+
+    // Get campaign files
+    static async getCampaignFiles(req, res) {
+        try {
+            const { campaignId } = req.params;
+            
+            const campaign = await Campaign.findById(campaignId);
+            if (!campaign) {
+                return createErrorResponse(res, 404, "Campaign not found");
+            }
+
+            const files = {
+                images: campaign.campaignImages || [],
+                documents: campaign.documents || [],
+                proofDocs: campaign.proofDocs || []
+            };
+
+            return createSuccessResponse(res, 200, {
+                message: "Campaign files retrieved successfully",
+                files
+            });
+
+        } catch (error) {
+            console.error("Get campaign files error:", error);
+            return createErrorResponse(res, 500, "Failed to retrieve campaign files", error.message);
+        }
+    }
+
+    // Get campaign images
+    static async getCampaignImages(req, res) {
+        try {
+            const { campaignId } = req.params;
+            
+            const campaign = await Campaign.findById(campaignId);
+            if (!campaign) {
+                return createErrorResponse(res, 404, "Campaign not found");
+            }
+
+            return createSuccessResponse(res, 200, {
+                message: "Campaign images retrieved successfully",
+                images: campaign.campaignImages || []
+            });
+
+        } catch (error) {
+            console.error("Get campaign images error:", error);
+            return createErrorResponse(res, 500, "Failed to retrieve campaign images", error.message);
+        }
+    }
+
+    // Get campaign documents
+    static async getCampaignDocuments(req, res) {
+        try {
+            const { campaignId } = req.params;
+            
+            const campaign = await Campaign.findById(campaignId);
+            if (!campaign) {
+                return createErrorResponse(res, 404, "Campaign not found");
+            }
+
+            return createSuccessResponse(res, 200, {
+                message: "Campaign documents retrieved successfully",
+                documents: campaign.documents || []
+            });
+
+        } catch (error) {
+            console.error("Get campaign documents error:", error);
+            return createErrorResponse(res, 500, "Failed to retrieve campaign documents", error.message);
+        }
+    }
+
+    // Get campaign proof
+    static async getCampaignProof(req, res) {
+        try {
+            const { campaignId } = req.params;
+            
+            const campaign = await Campaign.findById(campaignId);
+            if (!campaign) {
+                return createErrorResponse(res, 404, "Campaign not found");
+            }
+
+            return createSuccessResponse(res, 200, {
+                message: "Campaign proof retrieved successfully",
+                proofDocs: campaign.proofDocs || []
+            });
+
+        } catch (error) {
+            console.error("Get campaign proof error:", error);
+            return createErrorResponse(res, 500, "Failed to retrieve campaign proof", error.message);
+        }
+    }
+
+    // Dashboard Analytics Controller
+    static getDashboardAnalytics = async (req, res) => {
+        try {
+            const { timeRange = '30d', metric } = req.query;
+
+            let dateFilter;
+            switch(timeRange) {
+                case '7d':
+                    dateFilter = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case '30d':
+                    dateFilter = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                    break;
+                case '90d':
+                    dateFilter = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+                    break;
+                case '1y':
+                    dateFilter = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+                    break;
+                default:
+                    dateFilter = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            }
+
+            const analytics = {};
+
+            if (!metric || metric === 'users') {
+                analytics.users = {
+                    total: await User.countDocuments(),
+                    new: await User.countDocuments({ createdAt: { $gte: dateFilter } }),
+                    active: await User.countDocuments({ isActive: true }),
+                    byRole: await User.aggregate([
+                        { $group: { _id: "$role", count: { $sum: 1 } } }
+                    ]),
+                    growth: await User.aggregate([
+                        { $match: { createdAt: { $gte: dateFilter } } },
+                        {
+                            $group: {
+                                _id: {
+                                    year: { $year: "$createdAt" },
+                                    month: { $month: "$createdAt" },
+                                    day: { $dayOfMonth: "$createdAt" }
+                                },
+                                count: { $sum: 1 }
+                            }
+                        },
+                        { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
+                    ])
+                };
+            }
+
+            if (!metric || metric === 'campaigns') {
+                analytics.campaigns = {
+                    total: await Campaign.countDocuments(),
+                    active: await Campaign.countDocuments({ isActive: true }),
+                    performance: await Campaign.aggregate([
+                        {
+                            $group: {
+                                _id: null,
+                                totalTarget: { $sum: "$targetAmount" },
+                                totalRaised: { $sum: "$raisedAmount" },
+                                avgCompletionRate: {
+                                    $avg: {
+                                        $cond: [
+                                            { $gt: ["$targetAmount", 0] },
+                                            { $divide: ["$raisedAmount", "$targetAmount"] },
+                                            0
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    ])
+                };
+            }
+
+            if (!metric || metric === 'activities') {
+                analytics.activities = {
+                    total: await Activity.countDocuments({ createdAt: { $gte: dateFilter } }),
+                    byAction: await Activity.aggregate([
+                        { $match: { createdAt: { $gte: dateFilter } } },
+                        { $group: { _id: "$action", count: { $sum: 1 } } },
+                        { $sort: { count: -1 } }
+                    ]),
+                    timeline: await Activity.aggregate([
+                        { $match: { createdAt: { $gte: dateFilter } } },
+                        {
+                            $group: {
+                                _id: {
+                                    year: { $year: "$createdAt" },
+                                    month: { $month: "$createdAt" },
+                                    day: { $dayOfMonth: "$createdAt" }
+                                },
+                                count: { $sum: 1 }
+                            }
+                        },
+                        { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
+                    ])
+                };
+            }
+
+            res.json({
+                success: true,
+                data: analytics,
+                timeRange,
+                generatedAt: new Date().toISOString()
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching dashboard analytics',
+                error: error.message
+            });
+        }
+    };
+
+    // Security Dashboard Controller
+    static getSecurityDashboard = async (req, res) => {
+        try {
+            const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+            const securityData = {
+                overview: {
+                    totalUsers: await User.countDocuments(),
+                    activeUsers: await User.countDocuments({ isActive: true }),
+                    suspendedUsers: await User.countDocuments({ isActive: false }),
+                    adminUsers: await User.countDocuments({ role: 'admin' })
+                },
+                authentication: {
+                    failedLogins24h: await Activity.countDocuments({
+                        action: 'login_failed',
+                        createdAt: { $gte: last24Hours }
+                    }),
+                    successfulLogins24h: await Activity.countDocuments({
+                        action: 'login_success',
+                        createdAt: { $gte: last24Hours }
+                    }),
+                    suspiciousActivities: await Activity.countDocuments({
+                        action: { $in: ['suspicious_access', 'multiple_failed_login'] },
+                        createdAt: { $gte: lastWeek }
+                    })
+                },
+                recentSecurityEvents: await Activity.find({
+                    action: { $in: ['login_failed', 'suspicious_access', 'security_alert'] },
+                    createdAt: { $gte: lastWeek }
+                })
+                .populate('userId', 'fullName email')
+                .sort({ createdAt: -1 })
+                .limit(20),
+                riskAssessment: {
+                    level: 'Low', // Implement risk calculation
+                    factors: [
+                        'No recent security incidents',
+                        'Low failed login rate',
+                        'Active monitoring enabled'
+                    ]
+                },
+                recommendations: [
+                    'Enable two-factor authentication for all admin accounts',
+                    'Review users with multiple failed login attempts',
+                    'Update password policies for stronger security',
+                    'Monitor suspicious IP addresses'
+                ]
+            };
+
+            res.json({
+                success: true,
+                data: securityData
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching security dashboard',
+                error: error.message
+            });
+        }
+    };
+
+    // System Health Controller
+    static getSystemHealth = async (req, res) => {
+        try {
+            const os = require('os');
+            const fs = require('fs').promises;
+            const path = require('path');
+
+            const memoryUsage = process.memoryUsage();
+            const systemMemory = {
+                total: os.totalmem(),
+                free: os.freemem(),
+                used: os.totalmem() - os.freemem()
+            };
+
+            // Check disk space (simplified)
+            let diskUsage = null;
+            try {
+                const stats = await fs.stat('./');
+                diskUsage = {
+                    total: 'Unknown',
+                    free: 'Unknown',
+                    used: 'Unknown'
+                };
+            } catch (err) {
+                // Disk usage check failed
+            }
+
+            const healthData = {
+                status: 'healthy', // Overall system status
+                server: {
+                    platform: os.platform(),
+                    architecture: os.arch(),
+                    nodeVersion: process.version,
+                    uptime: process.uptime(),
+                    pid: process.pid
+                },
+                memory: {
+                    system: {
+                        total: Math.round(systemMemory.total / 1024 / 1024),
+                        free: Math.round(systemMemory.free / 1024 / 1024),
+                        used: Math.round(systemMemory.used / 1024 / 1024),
+                        percentage: Math.round((systemMemory.used / systemMemory.total) * 100)
+                    },
+                    process: {
+                        rss: Math.round(memoryUsage.rss / 1024 / 1024),
+                        heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+                        heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024),
+                        external: Math.round(memoryUsage.external / 1024 / 1024),
+                        percentage: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100)
+                    }
+                },
+                cpu: {
+                    cores: os.cpus().length,
+                    model: os.cpus()[0]?.model || 'Unknown',
+                    loadAverage: os.loadavg(),
+                    usage: process.cpuUsage()
+                },
+                database: {
+                    status: require('mongoose').connection.readyState === 1 ? 'Connected' : 'Disconnected',
+                    connectionString: process.env.MONGO_URI ? 'Configured' : 'Default Local',
+                    collections: {
+                        users: await User.estimatedDocumentCount(),
+                        campaigns: await Campaign.estimatedDocumentCount(),
+                        activities: await Activity.estimatedDocumentCount()
+                    }
+                },
+                storage: diskUsage,
+                network: {
+                    hostname: os.hostname(),
+                    interfaces: Object.keys(os.networkInterfaces()).length
+                }
+            };
+
+            // Determine overall health status
+            if (healthData.memory.system.percentage > 90 || healthData.memory.process.percentage > 90) {
+                healthData.status = 'warning';
+            }
+            if (healthData.database.status !== 'Connected') {
+                healthData.status = 'error';
+            }
+
+            res.json({
+                success: true,
+                data: healthData,
+                timestamp: new Date().toISOString()
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching system health',
+                error: error.message
+            });
+        }
+    };
+
+    // Performance Monitoring Controller
+    static getPerformanceMetrics = async (req, res) => {
+        try {
+            const performanceData = {
+                api: {
+                    totalRequests: 0, // Implement request counting middleware
+                    averageResponseTime: 0, // Implement response time tracking
+                    errorRate: 0, // Implement error rate tracking
+                    endpoints: {
+                        healthiest: '/api/auth/profile',
+                        slowest: '/api/admin/reports/export'
+                    }
+                },
+                database: {
+                    totalQueries: 0, // Implement query counting
+                    averageQueryTime: 0, // Implement query time tracking
+                    slowQueries: [], // Implement slow query logging
+                    connectionPool: {
+                        active: 1,
+                        available: 10,
+                        waiting: 0
+                    }
+                },
+                files: {
+                    totalUploads: 0, // Count files in uploads directory
+                    storageUsed: '0 MB', // Calculate actual storage
+                    uploadsToday: 0,
+                    largestFile: '0 MB'
+                },
+                caching: {
+                    hitRate: 0, // If you implement caching
+                    missRate: 0,
+                    evictions: 0
+                }
+            };
+
+            // Try to get actual file statistics
+            try {
+                const fs = require('fs');
+                const path = require('path');
+                const uploadsPath = path.join(process.cwd(), 'uploads');
+
+                if (fs.existsSync(uploadsPath)) {
+                    const getDirectorySize = (dirPath) => {
+                        let size = 0;
+                        let fileCount = 0;
+
+                        const files = fs.readdirSync(dirPath, { withFileTypes: true });
+
+                        for (const file of files) {
+                            const filePath = path.join(dirPath, file.name);
+                            if (file.isDirectory()) {
+                                const subDir = getDirectorySize(filePath);
+                                size += subDir.size;
+                                fileCount += subDir.count;
+                            } else {
+                                const stats = fs.statSync(filePath);
+                                size += stats.size;
+                                fileCount++;
+                            }
+                        }
+
+                        return { size, count: fileCount };
+                    };
+
+                    const dirStats = getDirectorySize(uploadsPath);
+                    performanceData.files.totalUploads = dirStats.count;
+                    performanceData.files.storageUsed = `${(dirStats.size / 1024 / 1024).toFixed(2)} MB`;
+                }
+            } catch (err) {
+                // File statistics failed
+            }
+
+            res.json({
+                success: true,
+                data: performanceData,
+                recommendations: [
+                    'Monitor slow database queries',
+                    'Implement response time optimization',
+                    'Set up automated performance alerts',
+                    'Regular cleanup of old log files'
+                ]
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching performance metrics',
+                error: error.message
+            });
+        }
+    };
 }
 
 module.exports = AdminController;

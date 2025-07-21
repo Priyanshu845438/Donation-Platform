@@ -1,12 +1,17 @@
-
 const express = require("express");
 const Campaign = require("../../models/Campaign");
 const NGO = require("../../models/NGO");
 const Company = require("../../models/Company");
-const ShareLink = require("../../models/ShareLink");
 const User = require("../../models/User");
+const ShareLink = require("../../models/ShareLink");
+
+// Import notice routes
+const noticeRoutes = require("./notices");
 
 const router = express.Router();
+
+// Use notice routes
+router.use("/notices", noticeRoutes);
 
 // Get all public campaigns
 router.get("/campaigns", async (req, res) => {
@@ -25,7 +30,7 @@ router.get("/campaigns/:id", async (req, res) => {
     try {
         const { id } = req.params;
         const campaign = await Campaign.findById(id).populate("ngoId", "ngoName email");
-        
+
         if (!campaign) {
             return res.status(404).json({ message: "Campaign not found" });
         }
@@ -55,7 +60,7 @@ router.get("/share/profile/:shareId", async (req, res) => {
         const user = await User.findById(shareLink.resourceId).select("-password");
         if (user) {
             let profileData = null;
-            
+
             if (user.role === "ngo") {
                 profileData = await NGO.findOne({ userId: user._id });
             } else if (user.role === "company") {
@@ -215,5 +220,14 @@ router.get("/stats", async (req, res) => {
         res.status(500).json({ message: "Error fetching stats", error: error.message });
     }
 });
+
+// Get single campaign by ID
+//router.get("/campaigns/:id", PublicController.getCampaign);
+
+// Get campaign by share link
+//router.get("/share/:shareLink", PublicController.getCampaignByShareLink);
+
+// Get campaign files (public)
+//router.get("/campaigns/:id/files", PublicController.getCampaignFiles);
 
 module.exports = router;

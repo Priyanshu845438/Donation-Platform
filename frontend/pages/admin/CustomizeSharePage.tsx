@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { adminAPI } from '../../services/api.ts';
 import type { User } from '../../types.ts';
 import Button from '../../components/Button.tsx';
+import { useToast } from '../../context/ToastContext.tsx';
 import { FiArrowLeft, FiSave, FiCode, FiEye, FiLoader, FiAlertCircle, FiInfo } from 'react-icons/fi';
 
 const PLACEHOLDERS = [
@@ -122,6 +123,7 @@ const CustomizeSharePage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const { addToast } = useToast();
 
     const initialize = useCallback(async () => {
         if (!userId) {
@@ -154,7 +156,9 @@ const CustomizeSharePage: React.FC = () => {
             });
 
         } catch (err: any) {
-            setError(err.message || 'Failed to initialize editor.');
+            const msg = err.message || 'Failed to initialize editor.';
+            setError(msg);
+            addToast(msg, 'error');
             setDesign({
                 html: DEFAULT_TEMPLATE.html,
                 css: DEFAULT_TEMPLATE.css,
@@ -163,7 +167,7 @@ const CustomizeSharePage: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [userId]);
+    }, [userId, addToast]);
 
     useEffect(() => {
         initialize();
@@ -171,15 +175,20 @@ const CustomizeSharePage: React.FC = () => {
 
     const handleSave = async () => {
         if (!shareId) {
-            setError('Share ID not found. Cannot save.');
+            const msg = 'Share ID not found. Cannot save.';
+            setError(msg);
+            addToast(msg, 'error');
             return;
         }
         setSaving(true);
         setError('');
         try {
             await adminAPI.updateShareablePageDesign(shareId, design);
+            addToast('Design saved successfully!', 'success');
         } catch (err: any) {
-            setError(err.message || 'Failed to save design.');
+            const msg = err.message || 'Failed to save design.';
+            setError(msg);
+            addToast(msg, 'error');
         } finally {
             setSaving(false);
         }

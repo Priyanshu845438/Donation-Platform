@@ -10,33 +10,23 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link id="dynamic-google-fonts" rel="stylesheet">
     <script>
       tailwind.config = {
         darkMode: 'class', // Enable dark mode
         theme: {
           extend: {
             colors: {
-              'brand-deep-blue': '#003f5c',
-              'brand-royal-navy': '#2f4b7c',
-              'brand-gold': '#ffa600',
-              'brand-light': '#f7f7f7',
-              'brand-dark': '#1a202c',
-              'brand-dark-200': '#2d3748',
-              // map old colors for easier transition
-              'navy-blue': 'var(--color-primary)',
-              'sky-blue': 'var(--color-accent)',
-              'warm-gray': {
-                'DEFAULT': 'var(--color-bg-secondary)',
-                '100': 'var(--color-bg-secondary)',
-                '200': 'var(--color-border)',
-                '600': 'var(--color-text-secondary)',
-                '700': 'var(--color-text-primary)',
-                '900': 'var(--color-text-headings)',
-              }
+              'brand-deep-blue': 'var(--color-primary)',
+              'brand-royal-navy': 'var(--color-secondary)',
+              'brand-gold': 'var(--color-accent)',
+              'brand-light': 'var(--color-bg-primary)',
+              'brand-dark': 'var(--color-bg-dark-primary)',
+              'brand-dark-200': 'var(--color-bg-dark-secondary)',
             },
             fontFamily: {
-              'serif': ['Merriweather', 'serif'],
-              'sans': ['Poppins', 'sans-serif']
+              'serif': ['var(--font-serif)', 'Merriweather', 'serif'],
+              'sans': ['var(--font-sans)', 'Poppins', 'sans-serif']
             }
           }
         }
@@ -53,36 +43,51 @@
     "chart.js": "https://esm.sh/chart.js@^4.4.3",
     "react-chartjs-2": "https://esm.sh/react-chartjs-2@^5.2.0",
     "framer-motion": "https://esm.sh/framer-motion@^11.3.19",
-    "@google/genai": "https://esm.sh/@google/genai@^1.9.0"
+    "@google/genai": "https://esm.sh/@google/genai@^1.9.0",
+    "react-markdown": "https://esm.sh/react-markdown@^9.0.1",
+    "remark-gfm": "https://esm.sh/remark-gfm@^4.0.0"
   }
 }
 </script>
-<style>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style id="default-theme-styles">
   :root {
+    --font-sans: 'Poppins';
+    --font-serif: 'Merriweather';
+    
+    /* Light Theme */
     --color-primary: #003f5c;
+    --color-secondary: #2f4b7c;
     --color-accent: #ffa600;
     --color-bg-primary: #ffffff;
     --color-bg-secondary: #f7f7f7;
     --color-text-primary: #2d3748;
     --color-text-secondary: #4a5568;
     --color-text-headings: #003f5c;
+    --color-text-on-accent: #ffffff;
     --color-border: #e2e8f0;
+
+    /* Dark Theme */
+    --color-bg-dark-primary: #1a202c;
+    --color-bg-dark-secondary: #2d3748;
+    --color-text-dark-primary: #f7fafc;
+    --color-text-dark-secondary: #a0aec0;
+    --color-text-dark-headings: #ffffff;
+    --color-border-dark: #4a5568;
   }
-  .dark {
-    --color-primary: #2f4b7c;
-    --color-accent: #ffa600;
-    --color-bg-primary: #1a202c;
-    --color-bg-secondary: #2d3748;
-    --color-text-primary: #f7fafc;
-    --color-text-secondary: #a0aec0;
-    --color-text-headings: #ffffff;
-    --color-border: #4a5568;
-  }
+  
   body {
     background-color: var(--color-bg-primary);
     color: var(--color-text-primary);
+    font-family: var(--font-sans), sans-serif;
+  }
+
+  .dark body {
+    background-color: var(--color-bg-dark-primary);
+    color: var(--color-text-dark-primary);
   }
 </style>
+<style id="dynamic-theme-styles"></style>
 <link rel="stylesheet" href="/index.css">
 </head>
 <body>

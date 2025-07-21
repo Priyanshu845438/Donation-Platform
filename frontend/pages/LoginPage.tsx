@@ -1,18 +1,22 @@
 
+
+
+
 import React, { useState, useContext, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import SectionWrapper from '../components/SectionWrapper.tsx';
 import Button from '../components/Button.tsx';
 import { AuthContext } from '../context/AuthContext.tsx';
+import { useToast } from '../context/ToastContext.tsx';
 import { FiLogIn } from 'react-icons/fi';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
   const { login, user } = useContext(AuthContext);
+  const { addToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || '/';
@@ -27,20 +31,19 @@ const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
     try {
       const loggedInUser = await login(email, password);
       if (loggedInUser) {
-          // Redirect to intended page or dashboard based on role
+          addToast(`Welcome back, ${loggedInUser.name}!`, 'success');
           const redirectPath = loggedInUser.role === 'admin' ? '/admin' : from;
           navigate(redirectPath, { replace: true });
       } else {
-        // The login function in AuthContext now throws specific errors
-        setError('Invalid email or password.');
+        // This case might not be hit if api throws, but is a good fallback.
+        addToast('Invalid email or password.', 'error');
       }
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred. Please try again.');
+      addToast(err.message || 'Login failed. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -60,7 +63,6 @@ const LoginPage: React.FC = () => {
             </p>
           </div>
           <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && <p className="text-center text-red-500 bg-red-100 dark:bg-red-900/50 p-3 rounded-md">{error}</p>}
             <div className="rounded-md shadow-sm -space-y-px">
               <div>
                 <label htmlFor="email-address" className="sr-only">Email address</label>

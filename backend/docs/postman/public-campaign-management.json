@@ -1,0 +1,507 @@
+
+{
+  "info": {
+    "name": "Public Campaign Management",
+    "description": "Complete public campaign endpoints for browsing, viewing, and accessing shared campaigns",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://0.0.0.0:5000",
+      "type": "string"
+    },
+    {
+      "key": "campaign_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "share_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Campaign Browsing",
+      "item": [
+        {
+          "name": "Get All Public Campaigns",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.campaigns && response.campaigns.length > 0) {",
+                  "        pm.collectionVariables.set('campaign_id', response.campaigns[0]._id);",
+                  "        console.log('✅ Campaigns retrieved successfully');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/campaigns?page=1&limit=10&category=Education&status=Active",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "campaigns"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of campaigns per page (default: 10, max: 50)"
+                },
+                {
+                  "key": "category",
+                  "value": "Education",
+                  "description": "Filter by category (Education, Healthcare, Environment, etc.)"
+                },
+                {
+                  "key": "status",
+                  "value": "Active",
+                  "description": "Filter by status (Active, Completed, Paused)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Campaign by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/campaigns/{{campaign_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "campaigns", "{{campaign_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Search Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/search?q=education&type=campaigns&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "education",
+                  "description": "Search query string"
+                },
+                {
+                  "key": "type",
+                  "value": "campaigns",
+                  "description": "Search type - currently supports 'campaigns'"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Results per page"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Campaign Categories",
+      "item": [
+        {
+          "name": "Get Campaigns by Category - Education",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/campaigns?category=Education&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "campaigns"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Education"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Campaigns by Category - Healthcare",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/campaigns?category=Healthcare&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "campaigns"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Healthcare"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Campaigns by Category - Environment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/campaigns?category=Environment&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "campaigns"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Environment"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shared Campaign Access",
+      "item": [
+        {
+          "name": "Access Shared Campaign",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/share/campaign/{{share_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "share", "campaign", "{{share_id}}"]
+            },
+            "description": "Access campaign via share link. This endpoint tracks view counts and analytics."
+          }
+        },
+        {
+          "name": "Access Shared Campaign with Custom Design",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/share/campaign/d515fd83a97f59f2188163e13c29bdfe",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "share", "campaign", "d515fd83a97f59f2188163e13c29bdfe"]
+            },
+            "description": "Example of accessing a shared campaign with a specific share ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Platform Statistics",
+      "item": [
+        {
+          "name": "Get Platform Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "stats"]
+            },
+            "description": "Get public platform statistics including total campaigns, donations, NGOs, and companies."
+          }
+        },
+        {
+          "name": "Get Campaign Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/categories",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "categories"]
+            },
+            "description": "Get all available campaign categories with counts"
+          }
+        }
+      ]
+    },
+    {
+      "name": "NGO & Organization Info",
+      "item": [
+        {
+          "name": "Get NGOs List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/ngos?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "ngos"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "NGOs per page (default: 10)"
+                }
+              ]
+            },
+            "description": "Get list of all approved NGOs with their basic information."
+          }
+        },
+        {
+          "name": "Get Companies List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/companies?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "companies"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Companies per page (default: 10)"
+                }
+              ]
+            },
+            "description": "Get list of all approved companies with their basic information."
+          }
+        },
+        {
+          "name": "Get NGO Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/ngo/6871e77eee061f384becdc37",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "ngo", "6871e77eee061f384becdc37"]
+            },
+            "description": "Get detailed NGO profile information"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Featured & Trending",
+      "item": [
+        {
+          "name": "Get Featured Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/campaigns/featured?limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "campaigns", "featured"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5",
+                  "description": "Number of featured campaigns to return"
+                }
+              ]
+            },
+            "description": "Get featured campaigns highlighted by the platform"
+          }
+        },
+        {
+          "name": "Get Trending Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/campaigns/trending?limit=10&period=week",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "campaigns", "trending"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of trending campaigns"
+                },
+                {
+                  "key": "period",
+                  "value": "week",
+                  "description": "Time period (day, week, month)"
+                }
+              ]
+            },
+            "description": "Get trending campaigns based on recent activity"
+          }
+        },
+        {
+          "name": "Get Recently Added Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/campaigns/recent?limit=8",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "campaigns", "recent"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "8",
+                  "description": "Number of recent campaigns"
+                }
+              ]
+            },
+            "description": "Get most recently added campaigns"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Campaign Filters & Sorting",
+      "item": [
+        {
+          "name": "Get Campaigns by Goal Amount Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/campaigns?minAmount=10000&maxAmount=500000&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "campaigns"],
+              "query": [
+                {
+                  "key": "minAmount",
+                  "value": "10000",
+                  "description": "Minimum goal amount"
+                },
+                {
+                  "key": "maxAmount",
+                  "value": "500000",
+                  "description": "Maximum goal amount"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Campaigns by Location",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/campaigns?location=Mumbai&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "campaigns"],
+              "query": [
+                {
+                  "key": "location",
+                  "value": "Mumbai",
+                  "description": "Filter by location"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Campaigns Sorted by Amount",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/campaigns?sortBy=goalAmount&sortOrder=desc&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "public", "campaigns"],
+              "query": [
+                {
+                  "key": "sortBy",
+                  "value": "goalAmount",
+                  "description": "Sort field (goalAmount, createdAt, endDate)"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "Sort order (asc, desc)"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

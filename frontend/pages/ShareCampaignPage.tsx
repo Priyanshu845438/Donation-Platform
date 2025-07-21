@@ -1,11 +1,13 @@
 
+
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getSharedCampaign } from '../services/api.ts';
 import type { Campaign } from '../types.ts';
 import ProgressBar from '../components/ProgressBar.tsx';
 import Button from '../components/Button.tsx';
-import { FiLoader, FiHeart, FiShare2, FiArrowRight } from 'react-icons/fi';
+import { FiLoader, FiHeart, FiShare2, FiArrowRight, FiFileText, FiImage } from 'react-icons/fi';
 
 const ShareCampaignPage: React.FC = () => {
     const { shareId } = useParams<{ shareId: string }>();
@@ -45,6 +47,25 @@ const ShareCampaignPage: React.FC = () => {
         }
       };
 
+    const renderFilePreview = (fileUrl: string, index: number) => {
+        const isImage = fileUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null;
+        const fileName = fileUrl.split('/').pop();
+
+        if (isImage) {
+            return (
+                <a key={index} href={fileUrl} target="_blank" rel="noopener noreferrer" className="block rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow group">
+                    <img src={fileUrl} alt={`Campaign content ${index + 1}`} className="h-40 w-full object-cover transition-transform group-hover:scale-105"/>
+                </a>
+            );
+        }
+        return (
+            <a key={index} href={fileUrl} target="_blank" rel="noopener noreferrer" className="block p-4 bg-gray-100 rounded-lg shadow-sm hover:shadow-lg transition-shadow text-center h-40 flex flex-col justify-center items-center">
+                <FiFileText className="h-10 w-10 text-gray-400 mx-auto mb-2" />
+                <span className="text-xs text-gray-600 truncate w-full block">{fileName}</span>
+            </a>
+        );
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-brand-light flex flex-col items-center justify-center text-center p-4">
@@ -78,7 +99,7 @@ const ShareCampaignPage: React.FC = () => {
 
                         {/* Image & Title Section */}
                         <div className="lg:col-span-3">
-                            <img src={campaign.images[0]} alt={campaign.title} className="w-full h-64 md:h-full object-cover" />
+                            <img src={campaign.thumbnail} alt={campaign.title} className="w-full h-64 md:h-full object-cover" />
                         </div>
 
                         {/* Donation & Stats Section */}
@@ -136,6 +157,33 @@ const ShareCampaignPage: React.FC = () => {
                         <div className="prose prose-lg max-w-none text-gray-600 leading-relaxed whitespace-pre-wrap">
                             <p>{campaign.fullDescription}</p>
                         </div>
+                    </div>
+
+                    <div className="p-6 md:p-10 pt-0 space-y-12">
+                        {campaign.images && campaign.images.length > 1 && (
+                            <section>
+                                <h2 className="font-serif text-2xl font-bold text-brand-deep-blue mb-4 flex items-center gap-3"><FiImage /> Gallery</h2>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    {campaign.images.slice(1).map((img, index) => renderFilePreview(img, index))}
+                                </div>
+                            </section>
+                        )}
+                        {campaign.documents && campaign.documents.length > 0 && (
+                            <section>
+                                <h2 className="font-serif text-2xl font-bold text-brand-deep-blue mb-4 flex items-center gap-3"><FiFileText /> Documents</h2>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    {campaign.documents.map((doc, index) => renderFilePreview(doc, index))}
+                                </div>
+                            </section>
+                        )}
+                        {campaign.proofs && campaign.proofs.length > 0 && (
+                            <section>
+                                <h2 className="font-serif text-2xl font-bold text-brand-deep-blue mb-4 flex items-center gap-3"><FiHeart /> Proof of Work</h2>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    {campaign.proofs.map((proof, index) => renderFilePreview(proof, index))}
+                                </div>
+                            </section>
+                        )}
                     </div>
                 </div>
 

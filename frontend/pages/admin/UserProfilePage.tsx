@@ -1,13 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+
+
+
+import React, { useState, useEffect, useContext, useRef } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { getAdminUserById, approveUser, toggleUserStatus, updateUserProfile } from '../../services/api.ts';
+import { getAdminUserById, approveUser, toggleUserStatus, updateUserProfile, adminAPI } from '../../services/api.ts';
 import type { User, Campaign } from '../../types.ts';
 import Button from '../../components/Button.tsx';
 import CampaignCard from '../../components/CampaignCard.tsx';
 import ShareProfileModal from '../../components/admin/ShareProfileModal.tsx';
-import { FiMail, FiPhone, FiCalendar, FiCheck, FiToggleLeft, FiToggleRight, FiArrowLeft, FiDollarSign, FiHeart, FiActivity, FiBriefcase, FiUser, FiUsers, FiInfo, FiAward, FiShield, FiTag, FiCreditCard, FiHome, FiMapPin, FiGlobe, FiEdit, FiSave, FiShare2, FiPenTool } from 'react-icons/fi';
+import { useToast } from '../../context/ToastContext.tsx';
+import { AuthContext } from '../../context/AuthContext.tsx';
+import { FiMail, FiPhone, FiCalendar, FiCheck, FiToggleLeft, FiToggleRight, FiArrowLeft, FiDollarSign, FiHeart, FiActivity, FiBriefcase, FiUser, FiUsers, FiInfo, FiAward, FiShield, FiTag, FiCreditCard, FiHome, FiMapPin, FiGlobe, FiEdit, FiSave, FiShare2, FiPenTool, FiUploadCloud, FiFileText, FiDownload, FiLoader } from 'react-icons/fi';
 
 const statusBadge = (status: User['status']) => {
     const base = "px-3 py-1 text-sm font-semibold rounded-full inline-block";
@@ -72,8 +77,72 @@ const FormSection = ({ title, icon, children }: { title: string, icon: React.Rea
     </div>
 );
 
+const CompanyDocumentsManager = ({ user, onUploadSuccess }: { user: User, onUploadSuccess: () => void }) => {
+    const { addToast } = useToast();
+    const [docs, setDocs] = useState<File[]>([]);
+    const [uploading, setUploading] = useState(false);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setDocs(Array.from(e.target.files));
+        }
+    };
+
+    const handleUpload = async () => {
+        if (docs.length === 0) {
+            addToast('Please select documents to upload.', 'info');
+            return;
+        }
+        setUploading(true);
+        try {
+            await adminAPI.uploadCompanyDocuments(user._id, docs);
+            addToast('Documents uploaded successfully!', 'success');
+            setDocs([]);
+            onUploadSuccess();
+        } catch (err: any) {
+            addToast(err.message || 'Failed to upload documents.', 'error');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    return (
+        <FormSection title="Company Documents" icon={<FiFileText />}>
+            <div className="md:col-span-2 space-y-4">
+                <div>
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Existing Documents</h4>
+                    {user.profile?.documents && user.profile.documents.length > 0 ? (
+                        <ul className="space-y-2">
+                            {user.profile.documents.map((doc, i) => (
+                                <li key={i}>
+                                    <a href={doc} target="_blank" rel="noopener noreferrer" className="flex items-center text-sm text-brand-gold hover:underline">
+                                        <FiDownload className="mr-2"/> {doc.split('/').pop()}
+                                    </a>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-sm text-gray-500">No documents uploaded.</p>
+                    )}
+                </div>
+                <div>
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upload New Documents</h4>
+                    <input type="file" multiple onChange={handleFileChange} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-gold/20 file:text-brand-gold hover:file:bg-brand-gold/30"/>
+                    <div className="text-right mt-2">
+                        <Button type="button" onClick={handleUpload} disabled={uploading || docs.length === 0}>
+                            {uploading ? <FiLoader className="animate-spin mr-2" /> : <FiUploadCloud className="mr-2" />}
+                            {uploading ? 'Uploading...' : `Upload ${docs.length} File(s)`}
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </FormSection>
+    );
+};
+
 const UserProfilePage: React.FC = () => {
     const { userId } = useParams<{ userId: string }>();
+    const { user: loggedInUser } = useContext(AuthContext);
     const [profileData, setProfileData] = useState<{ user: User, stats: any, activities: any[], campaigns: Campaign[] } | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -81,6 +150,9 @@ const UserProfilePage: React.FC = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [formData, setFormData] = useState<any>({});
+    const { addToast } = useToast();
+    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
 
     const fetchUser = async () => {
         if (!userId) return;
@@ -92,6 +164,7 @@ const UserProfilePage: React.FC = () => {
             setProfileData(data);
         } catch (err: any) {
             setError(err.message || 'Failed to fetch user data.');
+            addToast(err.message || 'Failed to fetch user data.', 'error');
         } finally {
             setLoading(false);
         }
@@ -101,6 +174,26 @@ const UserProfilePage: React.FC = () => {
         fetchUser();
     }, [userId]);
     
+    const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0] && userId) {
+            const file = e.target.files[0];
+            setIsUploadingAvatar(true);
+            try {
+                if (loggedInUser?._id === userId) {
+                    await adminAPI.uploadAdminProfileImage(file);
+                } else {
+                    await adminAPI.uploadUserProfileImage(userId, file);
+                }
+                addToast('Avatar updated successfully!', 'success');
+                fetchUser();
+            } catch (err: any) {
+                addToast(err.message || 'Failed to upload avatar.', 'error');
+            } finally {
+                setIsUploadingAvatar(false);
+            }
+        }
+    };
+
     const handleEditClick = () => {
         setFormData(profileData?.user?.profile || {});
         setIsEditMode(true);
@@ -135,10 +228,11 @@ const UserProfilePage: React.FC = () => {
         setIsSaving(true);
         try {
             await updateUserProfile(userId, formData);
+            addToast('Profile updated successfully!', 'success');
             await fetchUser();
             setIsEditMode(false);
         } catch (err: any) {
-            alert(`Failed to update profile: ${err.message}`);
+            addToast(`Failed to update profile: ${err.message}`, 'error');
         } finally {
             setIsSaving(false);
         }
@@ -149,9 +243,10 @@ const UserProfilePage: React.FC = () => {
         if (!profileData?.user) return;
         try {
             await approveUser(profileData.user.id);
+            addToast('User approved successfully.', 'success');
             fetchUser();
         } catch (err: any) {
-            alert(`Failed to approve user: ${err.message}`);
+            addToast(`Failed to approve user: ${err.message}`, 'error');
         }
     };
 
@@ -159,9 +254,10 @@ const UserProfilePage: React.FC = () => {
         if (!profileData?.user) return;
         try {
             await toggleUserStatus(profileData.user);
+            addToast('User status updated successfully.', 'success');
             fetchUser();
         } catch (err: any) {
-            alert(`Failed to change status: ${err.message}`);
+            addToast(`Failed to change status: ${err.message}`, 'error');
         }
     };
 
@@ -221,17 +317,20 @@ const UserProfilePage: React.FC = () => {
                 </>
             )}
             {user.role === 'company' && (
-                 <FormSection title="Company Profile" icon={<FiBriefcase/>}>
-                    <FormField label="Company Name" name="companyName" value={formData.companyName} onChange={handleInputChange} />
-                    <FormField label="Registration Number" name="registrationNumber" value={formData.registrationNumber} onChange={handleInputChange} />
-                    <FormField label="Company Address" name="companyAddress" value={formData.companyAddress} onChange={handleInputChange} />
-                    <FormField label="# of Employees" name="numberOfEmployees" value={formData.numberOfEmployees} onChange={handleInputChange} type="number"/>
-                    <FormField label="Company Type" name="companyType" value={formData.companyType} onChange={handleInputChange} />
-                    <h4 className="md:col-span-2 font-semibold text-gray-800 dark:text-gray-200 mt-4 pt-3 border-t dark:border-gray-700">CEO Details</h4>
-                    <FormField label="CEO Name" name="ceoName" value={formData.ceoName} onChange={handleInputChange} />
-                    <FormField label="CEO Phone" name="ceoContactNumber" value={formData.ceoContactNumber} onChange={handleInputChange} />
-                    <FormField label="CEO Email" name="ceoEmail" value={formData.ceoEmail} onChange={handleInputChange} type="email" />
-                 </FormSection>
+                <>
+                    <FormSection title="Company Profile" icon={<FiBriefcase/>}>
+                        <FormField label="Company Name" name="companyName" value={formData.companyName} onChange={handleInputChange} />
+                        <FormField label="Registration Number" name="registrationNumber" value={formData.registrationNumber} onChange={handleInputChange} />
+                        <FormField label="Company Address" name="companyAddress" value={formData.companyAddress} onChange={handleInputChange} />
+                        <FormField label="# of Employees" name="numberOfEmployees" value={formData.numberOfEmployees} onChange={handleInputChange} type="number"/>
+                        <FormField label="Company Type" name="companyType" value={formData.companyType} onChange={handleInputChange} />
+                        <h4 className="md:col-span-2 font-semibold text-gray-800 dark:text-gray-200 mt-4 pt-3 border-t dark:border-gray-700">CEO Details</h4>
+                        <FormField label="CEO Name" name="ceoName" value={formData.ceoName} onChange={handleInputChange} />
+                        <FormField label="CEO Phone" name="ceoContactNumber" value={formData.ceoContactNumber} onChange={handleInputChange} />
+                        <FormField label="CEO Email" name="ceoEmail" value={formData.ceoEmail} onChange={handleInputChange} type="email" />
+                    </FormSection>
+                    <CompanyDocumentsManager user={user} onUploadSuccess={fetchUser} />
+                </>
             )}
             <div className="flex justify-end gap-2 pt-4">
                 <Button type="button" variant="ghost" onClick={handleCancel}>Cancel</Button>
@@ -277,20 +376,49 @@ const UserProfilePage: React.FC = () => {
                     <DetailItem icon={<FiTag />} label="Company Type">{user.profile.companyType || 'N/A'}</DetailItem>
                     <h4 className="font-semibold text-gray-800 dark:text-gray-200 mt-4 pt-3 border-t dark:border-gray-700">CEO Details</h4>
                     <DetailItem icon={<FiUser />} label="Name">{user.profile.ceoName || 'N/A'}</DetailItem><DetailItem icon={<FiPhone />} label="Phone">{user.profile.ceoContactNumber || 'N/A'}</DetailItem><DetailItem icon={<FiMail />} label="Email">{user.profile.ceoEmail || 'N/A'}</DetailItem>
+                    {user.profile.documents && user.profile.documents.length > 0 && (
+                        <>
+                            <h4 className="font-semibold text-gray-800 dark:text-gray-200 mt-4 pt-3 border-t dark:border-gray-700">Company Documents</h4>
+                             <ul className="space-y-2">
+                                {user.profile.documents.map((doc, i) => (
+                                    <li key={i}>
+                                        <a href={doc} target="_blank" rel="noopener noreferrer" className="flex items-center text-sm text-brand-gold hover:underline">
+                                            <FiDownload className="mr-2"/> {doc.split('/').pop()}
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        </>
+                    )}
                 </div>
             )}
         </div>
     );
 
+    const mainAnimation = {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 }
+    };
+
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+        <motion.div {...mainAnimation} className="space-y-6">
             <Link to="/admin/users" className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-brand-gold font-semibold">
                 <FiArrowLeft /> Back to User List
             </Link>
 
             {/* Header */}
             <div className="bg-white dark:bg-brand-dark-200 p-6 rounded-lg shadow-md flex flex-col md:flex-row items-start md:items-center gap-6">
-                <img src={user.avatar} alt={user.name} className={`w-28 h-28 rounded-full object-cover ring-4 ${roleColors[user.role] || 'ring-gray-300'}`} />
+                <div className="relative group w-28 h-28 flex-shrink-0">
+                    <img src={user.avatar} alt={user.name} className={`w-28 h-28 rounded-full object-cover ring-4 ${roleColors[user.role] || 'ring-gray-300'}`} />
+                    <div 
+                        className="absolute inset-0 bg-black bg-opacity-40 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        onClick={() => avatarInputRef.current?.click()}
+                        title="Change profile picture"
+                    >
+                        {isUploadingAvatar ? <FiLoader className="animate-spin h-8 w-8"/> : <FiUploadCloud className="h-8 w-8" />}
+                    </div>
+                    <input type="file" ref={avatarInputRef} hidden accept="image/*" onChange={handleAvatarChange} />
+                </div>
                 <div className="flex-grow">
                     <div className="flex items-center gap-3">
                         <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{user.name}</h1>

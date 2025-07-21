@@ -1,0 +1,652 @@
+
+{
+  "info": {
+    "name": "Notice Management System",
+    "description": "Complete notice management system for admin panel with in-app and email notifications",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://0.0.0.0:5000",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "notice_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('admin_token', response.token);",
+                  "    console.log('Admin token saved:', response.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login as admin to get authentication token for notice management"
+          }
+        },
+        {
+          "name": "User Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('user_token', response.token);",
+                  "    console.log('User token saved:', response.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login as regular user to test user-side notice functionality"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Notice Management",
+      "item": [
+        {
+          "name": "Get All Notices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices?page=1&limit=10&type=info&priority=medium&targetRole=all&status=active&search=important",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of notices per page (default: 10)"
+                },
+                {
+                  "key": "type",
+                  "value": "info",
+                  "description": "Filter by type: info, warning, success, error"
+                },
+                {
+                  "key": "priority",
+                  "value": "medium",
+                  "description": "Filter by priority: low, medium, high, urgent"
+                },
+                {
+                  "key": "targetRole",
+                  "value": "all",
+                  "description": "Filter by target role: all, ngo, company, donor, admin"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by status: active, inactive"
+                },
+                {
+                  "key": "search",
+                  "value": "important",
+                  "description": "Search in title and content"
+                }
+              ]
+            },
+            "description": "Get all notices with filtering, pagination, and search functionality"
+          }
+        },
+        {
+          "name": "Create Notice",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('notice_id', response.notice._id);",
+                  "    console.log('Notice ID saved:', response.notice._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"System Maintenance Notice\",\n  \"content\": \"The platform will undergo scheduled maintenance on Sunday from 2:00 AM to 4:00 AM IST. During this time, some features may be temporarily unavailable. We apologize for any inconvenience.\",\n  \"type\": \"warning\",\n  \"priority\": \"high\",\n  \"targetRole\": \"all\",\n  \"sendEmail\": true,\n  \"scheduledAt\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices"]
+            },
+            "description": "Create a new notice. Set scheduledAt to null for immediate sending or provide a future date for scheduling."
+          }
+        },
+        {
+          "name": "Create Targeted Notice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"NGO Registration Approved\",\n  \"content\": \"Congratulations! Your NGO registration has been approved. You can now start creating campaigns and receiving donations.\",\n  \"type\": \"success\",\n  \"priority\": \"medium\",\n  \"targetRole\": \"ngo\",\n  \"targetUsers\": [\"6871e77eee061f384becdc35\"],\n  \"sendEmail\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices"]
+            },
+            "description": "Create a targeted notice for specific users or roles"
+          }
+        },
+        {
+          "name": "Create Scheduled Notice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Monthly Newsletter\",\n  \"content\": \"Dear users, our monthly newsletter is now available! Check out the latest campaigns, success stories, and platform updates.\",\n  \"type\": \"info\",\n  \"priority\": \"low\",\n  \"targetRole\": \"all\",\n  \"sendEmail\": true,\n  \"scheduledAt\": \"2024-02-01T10:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices"]
+            },
+            "description": "Create a scheduled notice that will be sent at a specific date and time"
+          }
+        },
+        {
+          "name": "Get Notice by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices/{{notice_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices", "{{notice_id}}"]
+            },
+            "description": "Get detailed information about a specific notice"
+          }
+        },
+        {
+          "name": "Update Notice",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated: System Maintenance Notice\",\n  \"content\": \"UPDATED: The platform maintenance has been rescheduled to Monday from 1:00 AM to 3:00 AM IST. We apologize for any confusion.\",\n  \"type\": \"warning\",\n  \"priority\": \"urgent\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices/{{notice_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices", "{{notice_id}}"]
+            },
+            "description": "Update an existing notice"
+          }
+        },
+        {
+          "name": "Delete Notice",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices/{{notice_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices", "{{notice_id}}"]
+            },
+            "description": "Delete a notice permanently"
+          }
+        },
+        {
+          "name": "Send Notice to Users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userIds\": [\"6871e77eee061f384becdc35\", \"6871e77eee061f384becdc36\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices/{{notice_id}}/send",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices", "{{notice_id}}", "send"]
+            },
+            "description": "Send an existing notice to additional specific users"
+          }
+        },
+        {
+          "name": "Get Notice Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices/stats/overview",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices", "stats", "overview"]
+            },
+            "description": "Get comprehensive notice statistics including counts by type, priority, and recent notices"
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Notice Management",
+      "item": [
+        {
+          "name": "Get My Notices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices/user/my-notices?page=1&limit=10&type=info&unread=false",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices", "user", "my-notices"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of notices per page"
+                },
+                {
+                  "key": "type",
+                  "value": "info",
+                  "description": "Filter by notice type"
+                },
+                {
+                  "key": "unread",
+                  "value": "false",
+                  "description": "Show only unread notices (true/false)"
+                }
+              ]
+            },
+            "description": "Get notices targeted to the current user based on their role and specific targeting"
+          }
+        },
+        {
+          "name": "Get Unread Notices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices/user/my-notices?unread=true&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices", "user", "my-notices"],
+              "query": [
+                {
+                  "key": "unread",
+                  "value": "true",
+                  "description": "Show only unread notices"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Number of notices to fetch"
+                }
+              ]
+            },
+            "description": "Get only unread notices for the current user - useful for notification badges"
+          }
+        },
+        {
+          "name": "Mark Notice as Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices/{{notice_id}}/read",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices", "{{notice_id}}", "read"]
+            },
+            "description": "Mark a specific notice as read by the current user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notice Types Examples",
+      "item": [
+        {
+          "name": "Create Info Notice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"New Feature Released\",\n  \"content\": \"We're excited to announce the launch of our new campaign sharing feature! You can now easily share your campaigns on social media platforms.\",\n  \"type\": \"info\",\n  \"priority\": \"medium\",\n  \"targetRole\": \"ngo\",\n  \"sendEmail\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices"]
+            },
+            "description": "Create an informational notice"
+          }
+        },
+        {
+          "name": "Create Warning Notice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Account Verification Required\",\n  \"content\": \"Your account verification is pending. Please submit the required documents within 7 days to avoid account suspension.\",\n  \"type\": \"warning\",\n  \"priority\": \"high\",\n  \"targetUsers\": [\"6871e77eee061f384becdc35\"],\n  \"sendEmail\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices"]
+            },
+            "description": "Create a warning notice for specific users"
+          }
+        },
+        {
+          "name": "Create Success Notice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Campaign Approved!\",\n  \"content\": \"Congratulations! Your campaign 'Education for All' has been approved and is now live on our platform. Start sharing it with your network!\",\n  \"type\": \"success\",\n  \"priority\": \"medium\",\n  \"targetUsers\": [\"6871e77eee061f384becdc35\"],\n  \"sendEmail\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices"]
+            },
+            "description": "Create a success notice"
+          }
+        },
+        {
+          "name": "Create Error Notice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Payment Processing Failed\",\n  \"content\": \"We encountered an issue processing your recent donation. Please check your payment method and try again. Contact support if the issue persists.\",\n  \"type\": \"error\",\n  \"priority\": \"urgent\",\n  \"targetUsers\": [\"6871e77eee061f384becdc36\"],\n  \"sendEmail\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices"]
+            },
+            "description": "Create an error notice for critical issues"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bulk Operations",
+      "item": [
+        {
+          "name": "Create Announcement for All Users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Platform Update - New Security Features\",\n  \"content\": \"We've enhanced our platform security with two-factor authentication and improved data encryption. Your account is now more secure than ever. Learn more about these features in our help center.\",\n  \"type\": \"info\",\n  \"priority\": \"medium\",\n  \"targetRole\": \"all\",\n  \"sendEmail\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices"]
+            },
+            "description": "Create an announcement that goes to all users on the platform"
+          }
+        },
+        {
+          "name": "Create NGO-Specific Notice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Monthly Reporting Reminder\",\n  \"content\": \"Dear NGOs, please remember to submit your monthly activity reports by the end of this month. Reports help us maintain transparency and trust with donors.\",\n  \"type\": \"warning\",\n  \"priority\": \"medium\",\n  \"targetRole\": \"ngo\",\n  \"sendEmail\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices"]
+            },
+            "description": "Create a notice specifically for NGO users"
+          }
+        },
+        {
+          "name": "Create Company-Specific Notice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"CSR Tax Benefits Information\",\n  \"content\": \"Companies can now claim tax benefits for donations made through our platform. Download your donation certificates from your dashboard and consult with your tax advisor for more details.\",\n  \"type\": \"info\",\n  \"priority\": \"low\",\n  \"targetRole\": \"company\",\n  \"sendEmail\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/notices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "notices"]
+            },
+            "description": "Create a notice specifically for company users"
+          }
+        }
+      ]
+    }
+  ]
+}

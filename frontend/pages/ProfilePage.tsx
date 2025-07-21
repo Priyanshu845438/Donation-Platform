@@ -1,12 +1,15 @@
 
+
+
+
 import React, { useContext, useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import SectionWrapper from '../components/SectionWrapper.tsx';
 import Button from '../components/Button.tsx';
 import { getProfileByUsername } from '../services/api.ts';
 import type { User, Campaign } from '../types.ts';
 import { AuthContext } from '../context/AuthContext.tsx';
-import { FiMail, FiGlobe, FiMapPin, FiEdit } from 'react-icons/fi';
+import { FiMail, FiGlobe, FiMapPin, FiEdit, FiFileText, FiDownload } from 'react-icons/fi';
 import CampaignCard from '../components/CampaignCard.tsx';
 
 const ProfilePage: React.FC = () => {
@@ -69,7 +72,7 @@ const ProfilePage: React.FC = () => {
                 </div>
                 {isOwner && (
                     <div className="md:ml-auto">
-                        <Button variant="outline"><FiEdit className="mr-2"/>Edit Profile</Button>
+                        <Button to={`/admin/users/${profileUser._id}`} variant="outline"><FiEdit className="mr-2"/>Edit Profile</Button>
                     </div>
                 )}
             </div>
@@ -86,6 +89,26 @@ const ProfilePage: React.FC = () => {
           </div>
         </SectionWrapper>
         
+        {profileUser.role === 'company' && profileUser.profile?.documents && profileUser.profile.documents.length > 0 && (
+          <SectionWrapper className="mt-16">
+            <div className="bg-white dark:bg-brand-dark p-8 rounded-lg shadow-lg">
+              <h2 className="text-2xl font-bold font-serif text-navy-blue dark:text-white mb-4 flex items-center gap-3">
+                <FiFileText/> Company Documents
+              </h2>
+              <ul className="space-y-2">
+                {profileUser.profile.documents.map((doc, i) => (
+                  <li key={i}>
+                    <a href={doc} target="_blank" rel="noopener noreferrer" className="flex items-center text-brand-gold hover:underline">
+                        <FiDownload className="mr-2"/>
+                        {doc.split('/').pop()}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </SectionWrapper>
+        )}
+
         {profileUser.role === 'ngo' && userCampaigns.length > 0 && (
             <SectionWrapper className="mt-16">
                 <h2 className="text-3xl font-bold font-serif text-navy-blue dark:text-white mb-8">Campaigns by {profileUser.name}</h2>

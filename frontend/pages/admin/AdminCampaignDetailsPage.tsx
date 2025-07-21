@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -7,7 +9,7 @@ import type { Campaign } from '../../types.ts';
 import Button from '../../components/Button.tsx';
 import ProgressBar from '../../components/ProgressBar.tsx';
 import ShareCampaignModal from '../../components/admin/ShareCampaignModal.tsx';
-import { FiArrowLeft, FiEdit, FiCalendar, FiMapPin, FiHeart, FiTarget, FiUsers, FiDollarSign, FiTag, FiFileText, FiShare2 } from 'react-icons/fi';
+import { FiArrowLeft, FiEdit, FiCalendar, FiMapPin, FiHeart, FiTarget, FiUsers, FiDollarSign, FiTag, FiFileText, FiShare2, FiDownload, FiImage } from 'react-icons/fi';
 
 const StatCard = ({ icon, label, value, color }: { icon: React.ReactNode, label: string, value: string | number, color: string }) => (
     <div className={`bg-white dark:bg-brand-dark p-4 rounded-lg shadow-md flex items-center gap-4 border-l-4 ${color}`}>
@@ -28,6 +30,25 @@ const DetailItem = ({ icon, label, children }: { icon: React.ReactNode, label: s
         </div>
     </div>
 );
+
+const renderFilePreview = (fileUrl: string, index: number) => {
+    const isImage = fileUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null;
+    const fileName = fileUrl.split('/').pop();
+
+    if (isImage) {
+        return (
+            <a key={index} href={fileUrl} target="_blank" rel="noopener noreferrer">
+                <img src={fileUrl} alt={`Preview ${index+1}`} className="w-full h-32 object-cover rounded-lg shadow-md hover:opacity-80 transition-opacity" />
+            </a>
+        );
+    }
+    return (
+        <a key={index} href={fileUrl} target="_blank" rel="noopener noreferrer" className="block w-full h-32 bg-gray-100 dark:bg-brand-dark rounded-lg shadow-md p-4 flex flex-col items-center justify-center text-center hover:bg-gray-200 dark:hover:bg-brand-dark-200/80 transition-colors">
+            <FiFileText className="h-10 w-10 text-gray-400 mb-2" />
+            <span className="text-xs text-gray-600 dark:text-gray-300 truncate w-full">{fileName}</span>
+        </a>
+    );
+};
 
 
 const AdminCampaignDetailsPage: React.FC = () => {
@@ -77,7 +98,7 @@ const AdminCampaignDetailsPage: React.FC = () => {
 
             {/* Header */}
             <div className="bg-white dark:bg-brand-dark-200 p-6 rounded-lg shadow-md flex flex-col md:flex-row items-start md:items-center gap-6">
-                 <img src={campaign.images[0]} alt={campaign.title} className="w-28 h-28 rounded-lg object-cover ring-4 ring-brand-gold" />
+                 <img src={campaign.thumbnail} alt={campaign.title} className="w-28 h-28 rounded-lg object-cover ring-4 ring-brand-gold" />
                 <div className="flex-grow">
                     <p className="text-sm text-gray-500 dark:text-gray-400">Campaign by <span className="font-semibold text-brand-gold">{campaign.organizer}</span></p>
                     <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{campaign.title}</h1>
@@ -107,17 +128,41 @@ const AdminCampaignDetailsPage: React.FC = () => {
 
             {/* Details */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 bg-white dark:bg-brand-dark-200 p-6 rounded-lg shadow-md space-y-6">
-                    <div>
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-white dark:bg-brand-dark-200 p-6 rounded-lg shadow-md">
                         <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2"><FiFileText/>Description</h3>
                         <p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{campaign.fullDescription}</p>
                     </div>
-                     <div>
+                     <div className="bg-white dark:bg-brand-dark-200 p-6 rounded-lg shadow-md">
                         <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2"><FiHeart/>The Story</h3>
                         <p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{campaign.explainStory || "No story provided."}</p>
                     </div>
+                    {campaign.images && campaign.images.length > 1 && (
+                        <div className="bg-white dark:bg-brand-dark-200 p-6 rounded-lg shadow-md">
+                            <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2"><FiImage/>Campaign Gallery</h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                {campaign.images.slice(1).map(renderFilePreview)}
+                            </div>
+                        </div>
+                    )}
+                    {campaign.documents && campaign.documents.length > 0 && (
+                         <div className="bg-white dark:bg-brand-dark-200 p-6 rounded-lg shadow-md">
+                            <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2"><FiDownload/>Documents</h3>
+                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                {campaign.documents.map(renderFilePreview)}
+                            </div>
+                        </div>
+                    )}
+                     {campaign.proofs && campaign.proofs.length > 0 && (
+                        <div className="bg-white dark:bg-brand-dark-200 p-6 rounded-lg shadow-md">
+                            <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2"><FiImage/>Proofs of Work</h3>
+                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                {campaign.proofs.map(renderFilePreview)}
+                            </div>
+                        </div>
+                    )}
                 </div>
-                <div className="lg:col-span-1 bg-white dark:bg-brand-dark-200 p-6 rounded-lg shadow-md">
+                <div className="lg:col-span-1 bg-white dark:bg-brand-dark-200 p-6 rounded-lg shadow-md self-start">
                      <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-3">Key Details</h3>
                      <div className="space-y-3">
                         <DetailItem icon={<FiTag/>} label="Category">{campaign.category}</DetailItem>

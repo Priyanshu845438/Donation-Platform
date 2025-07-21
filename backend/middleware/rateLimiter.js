@@ -1,189 +1,189 @@
-const rateLimit = require('express-rate-limit');
-const logger = require('../utils/logger');
 
-/**
- * General rate limiter
- */
-const generalLimiter = rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
-    message: {
-        success: false,
-        message: 'Too many requests from this IP, please try again later.'
-    },
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    trustProxy: true, // Trust proxy settings for accurate IP detection
-    handler: (req, res) => {
-        logger.warn(`Rate limit exceeded for IP: ${req.ip}`);
-        res.status(429).json({
-            success: false,
-            message: 'Too many requests from this IP, please try again later.'
-        });
-    }
-});
+const rateLimit = require("express-rate-limit");
+const Settings = require("../models/Settings");
+const Activity = require("../models/Activity");
 
-/**
- * Authentication rate limiter (stricter)
- */
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5000, // limit each IP to 5 auth requests per windowMs
-    trustProxy: true, // Trust proxy settings
-    message: {
-        success: false,
-        message: 'Too many authentication attempts, please try again later.'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res) => {
-        logger.warn(`Auth rate limit exceeded for IP: ${req.ip}`);
-        res.status(429).json({
-            success: false,
-            message: 'Too many authentication attempts, please try again later.'
-        });
-    }
-});
+// Store for dynamic rate limiters
+const rateLimiters = new Map();
 
-/**
- * Password reset rate limiter
- */
-const passwordResetLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 300, // limit each IP to 3 password reset requests per windowMs
-    trustProxy: true,
-    message: {
-        success: false,
-        message: 'Too many password reset attempts, please try again later.'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res) => {
-        logger.warn(`Password reset rate limit exceeded for IP: ${req.ip}`);
-        res.status(429).json({
-            success: false,
-            message: 'Too many password reset attempts, please try again later.'
-        });
-    }
-});
+// Create rate limiter based on settings
+const createRateLimiter = (config) => {
+    return rateLimit({
+        windowMs: (config.window_minutes || 15) * 60 * 1000, // Convert minutes to milliseconds
+        max: config.max_requests || 100,
+        message: {
+            error: "Too many requests",
+            message: `Rate limit exceeded. Try again in ${config.window_minutes || 15} minutes.`,
+            retryAfter: config.window_minutes || 15
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+        handler: async (req, res) => {
+            // Log rate limit violation
+            try {
+                await Activity.create({
+                    userId: req.user?.id || null,
+                    action: "rate_limit_exceeded",
+                    description: `Rate limit exceeded from IP: ${req.ip}`,
+                    metadata: { 
+                        ip: req.ip, 
+                        userAgent: req.get('User-Agent'),
+                        endpoint: req.originalUrl
+                    }
+                });
+            } catch (error) {
+                console.error("Error logging rate limit violation:", error);
+            }
 
-/**
- * File upload rate limiter
- */
-const uploadLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 1000, // limit each IP to 10 upload requests per windowMs
-    trustProxy: true,
-    message: {
-        success: false,
-        message: 'Too many file upload attempts, please try again later.'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res) => {
-        logger.warn(`Upload rate limit exceeded for IP: ${req.ip}`);
-        res.status(429).json({
-            success: false,
-            message: 'Too many file upload attempts, please try again later.'
-        });
-    }
-});
+            res.status(429).json({
+                error: "Too many requests",
+                message: `Rate limit exceeded. Try again in ${config.window_minutes || 15} minutes.`,
+                retryAfter: config.window_minutes || 15
+            });
+        }
+    });
+};
 
-/**
- * Donation rate limiter
- */
-const donationLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 5, // limit each IP to 5 donation requests per minute
-    trustProxy: true,
-    message: {
-        success: false,
-        message: 'Too many donation attempts, please slow down.'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res) => {
-        logger.warn(`Donation rate limit exceeded for IP: ${req.ip}`);
-        res.status(429).json({
-            success: false,
-            message: 'Too many donation attempts, please slow down.'
-        });
-    }
-});
+// Auth-specific rate limiter
+const createAuthRateLimiter = (config) => {
+    return rateLimit({
+        windowMs: (config.auth_window_minutes || 15) * 60 * 1000,
+        max: config.auth_attempts_limit || 5,
+        message: {
+            error: "Too many authentication attempts",
+            message: `Too many login attempts. Try again in ${config.auth_window_minutes || 15} minutes.`,
+            retryAfter: config.auth_window_minutes || 15
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+        skipSuccessfulRequests: true,
+        handler: async (req, res) => {
+            try {
+                await Activity.create({
+                    action: "auth_rate_limit_exceeded",
+                    description: `Authentication rate limit exceeded from IP: ${req.ip}`,
+                    metadata: { 
+                        ip: req.ip, 
+                        userAgent: req.get('User-Agent'),
+                        endpoint: req.originalUrl
+                    }
+                });
+            } catch (error) {
+                console.error("Error logging auth rate limit violation:", error);
+            }
 
-/**
- * Campaign creation rate limiter
- */
-const campaignCreationLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 1000, // limit each IP to 5 campaign creation requests per hour
-    trustProxy: true,
-    message: {
-        success: false,
-        message: 'Too many campaign creation attempts, please try again later.'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res) => {
-        logger.warn(`Campaign creation rate limit exceeded for IP: ${req.ip}`);
-        res.status(429).json({
-            success: false,
-            message: 'Too many campaign creation attempts, please try again later.'
-        });
-    }
-});
+            res.status(429).json({
+                error: "Too many authentication attempts",
+                message: `Too many login attempts. Try again in ${config.auth_window_minutes || 15} minutes.`,
+                retryAfter: config.auth_window_minutes || 15
+            });
+        }
+    });
+};
 
-/**
- * Registration rate limiter
- */
-const registrationLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 2000, // limit each IP to 20 registration requests per hour (increased for testing)
-    trustProxy: true,
-    message: {
-        success: false,
-        message: 'Too many registration attempts, please try again later.'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res) => {
-        logger.warn(`Registration rate limit exceeded for IP: ${req.ip}`);
-        res.status(429).json({
-            success: false,
-            message: 'Too many registration attempts, please try again later.'
-        });
-    }
-});
+// Upload-specific rate limiter
+const createUploadRateLimiter = (config) => {
+    return rateLimit({
+        windowMs: (config.window_minutes || 15) * 60 * 1000,
+        max: Math.floor((config.max_requests || 100) / 4), // Quarter of normal rate for uploads
+        message: {
+            error: "Too many upload requests",
+            message: `Upload rate limit exceeded. Try again in ${config.window_minutes || 15} minutes.`,
+            retryAfter: config.window_minutes || 15
+        },
+        standardHeaders: true,
+        legacyHeaders: false
+    });
+};
 
-/**
- * API rate limiter (for API endpoints)
- */
-const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 1000, // limit each IP to 1000 API requests per windowMs
-    trustProxy: true,
-    message: {
-        success: false,
-        message: 'API rate limit exceeded, please try again later.'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res) => {
-        logger.warn(`API rate limit exceeded for IP: ${req.ip}`);
-        res.status(429).json({
-            success: false,
-            message: 'API rate limit exceeded, please try again later.'
-        });
+// Dynamic rate limiter middleware
+const dynamicRateLimit = async (req, res, next) => {
+    try {
+        // Get rate limiting settings
+        const rateLimitSettings = await Settings.findOne({ category: "rate_limiting" });
+        
+        if (!rateLimitSettings || !rateLimitSettings.settings.get("enabled")) {
+            return next(); // Rate limiting disabled
+        }
+
+        const config = Object.fromEntries(rateLimitSettings.settings);
+        
+        // Create or get existing rate limiter
+        const limiterKey = `general_${config.window_minutes}_${config.max_requests}`;
+        
+        if (!rateLimiters.has(limiterKey)) {
+            rateLimiters.set(limiterKey, createRateLimiter(config));
+        }
+
+        const limiter = rateLimiters.get(limiterKey);
+        limiter(req, res, next);
+
+    } catch (error) {
+        console.error("Rate limiter error:", error);
+        next(); // Continue without rate limiting on error
     }
-});
+};
+
+// Auth rate limiter middleware
+const authRateLimit = async (req, res, next) => {
+    try {
+        const rateLimitSettings = await Settings.findOne({ category: "rate_limiting" });
+        
+        if (!rateLimitSettings || !rateLimitSettings.settings.get("enabled")) {
+            return next();
+        }
+
+        const config = Object.fromEntries(rateLimitSettings.settings);
+        
+        const limiterKey = `auth_${config.auth_window_minutes}_${config.auth_attempts_limit}`;
+        
+        if (!rateLimiters.has(limiterKey)) {
+            rateLimiters.set(limiterKey, createAuthRateLimiter(config));
+        }
+
+        const limiter = rateLimiters.get(limiterKey);
+        limiter(req, res, next);
+
+    } catch (error) {
+        console.error("Auth rate limiter error:", error);
+        next();
+    }
+};
+
+// Upload rate limiter middleware
+const uploadRateLimit = async (req, res, next) => {
+    try {
+        const rateLimitSettings = await Settings.findOne({ category: "rate_limiting" });
+        
+        if (!rateLimitSettings || !rateLimitSettings.settings.get("enabled")) {
+            return next();
+        }
+
+        const config = Object.fromEntries(rateLimitSettings.settings);
+        
+        const limiterKey = `upload_${config.window_minutes}_${Math.floor(config.max_requests / 4)}`;
+        
+        if (!rateLimiters.has(limiterKey)) {
+            rateLimiters.set(limiterKey, createUploadRateLimiter(config));
+        }
+
+        const limiter = rateLimiters.get(limiterKey);
+        limiter(req, res, next);
+
+    } catch (error) {
+        console.error("Upload rate limiter error:", error);
+        next();
+    }
+};
+
+// Clear rate limiter cache (useful when settings change)
+const clearRateLimiterCache = () => {
+    rateLimiters.clear();
+};
 
 module.exports = {
-    generalLimiter,
-    authLimiter,
-    passwordResetLimiter,
-    uploadLimiter,
-    donationLimiter,
-    campaignCreationLimiter,
-    registrationLimiter,
-    apiLimiter
+    dynamicRateLimit,
+    authRateLimit,
+    uploadRateLimit,
+    clearRateLimiterCache
 };

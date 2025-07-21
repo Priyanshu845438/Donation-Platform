@@ -4,6 +4,7 @@ import { FiX, FiShare2, FiClipboard, FiCheck, FiLoader } from 'react-icons/fi';
 import Button from '../Button.tsx';
 import { adminAPI } from '../../services/api.ts';
 import type { Campaign } from '../../types.ts';
+import { useToast } from '../../context/ToastContext.tsx';
 
 interface ShareCampaignModalProps {
     isOpen: boolean;
@@ -12,6 +13,7 @@ interface ShareCampaignModalProps {
 }
 
 const ShareCampaignModal: React.FC<ShareCampaignModalProps> = ({ isOpen, onClose, campaign }) => {
+    const { addToast } = useToast();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [shareLink, setShareLink] = useState('');
@@ -27,20 +29,24 @@ const ShareCampaignModal: React.FC<ShareCampaignModalProps> = ({ isOpen, onClose
                 try {
                     const response = await adminAPI.generateCampaignShareLink(campaign._id);
                     setShareLink(response.shareLink);
+                    addToast('Share link generated!', 'success');
                 } catch (err: any) {
-                    setError(err.message || 'Failed to generate share link.');
+                    const msg = err.message || 'Failed to generate share link.';
+                    setError(msg);
+                    addToast(msg, 'error');
                 } finally {
                     setLoading(false);
                 }
             };
             generateLink();
         }
-    }, [isOpen, campaign]);
+    }, [isOpen, campaign, addToast]);
 
     const handleCopy = () => {
         if (!shareLink) return;
         navigator.clipboard.writeText(shareLink);
         setCopied(true);
+        addToast('Link copied to clipboard!', 'success');
         setTimeout(() => setCopied(false), 2000);
     };
 

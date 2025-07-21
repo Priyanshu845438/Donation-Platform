@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAdminUsers, approveUser, toggleUserStatus, deleteUser } from '../../services/api.ts';
@@ -8,6 +10,7 @@ import { FiEdit, FiTrash2, FiCheck, FiPlus, FiToggleLeft, FiToggleRight, FiChevr
 import CreateUserModal from '../../components/admin/CreateUserModal.tsx';
 import EditUserModal from '../../components/admin/EditUserModal.tsx';
 import DeleteUserModal from '../../components/admin/DeleteUserModal.tsx';
+import { useToast } from '../../context/ToastContext.tsx';
 
 const USERS_PER_PAGE = 10;
 
@@ -23,6 +26,7 @@ const UserManagementPage: React.FC = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const navigate = useNavigate();
+  const { addToast } = useToast();
   
   const fetchUsers = async () => {
     setLoading(true);
@@ -33,6 +37,7 @@ const UserManagementPage: React.FC = () => {
         setUsers(sortedUsers);
     } catch (err: any) {
         setError(err.message || 'Failed to fetch users.');
+        addToast(err.message || 'Failed to fetch users.', 'error');
     } finally {
         setLoading(false);
     }
@@ -73,9 +78,10 @@ const UserManagementPage: React.FC = () => {
     e.stopPropagation();
     try {
         await approveUser(userId);
+        addToast('User approved successfully.', 'success');
         fetchUsers();
     } catch (err: any) {
-        alert(`Failed to approve user: ${err.message}`);
+        addToast(`Failed to approve user: ${err.message}`, 'error');
     }
   };
 
@@ -83,9 +89,10 @@ const UserManagementPage: React.FC = () => {
     e.stopPropagation();
      try {
          await toggleUserStatus(user);
+         addToast('User status updated successfully.', 'success');
          fetchUsers();
      } catch (err: any) {
-         alert(`Failed to change status: ${err.message}`);
+         addToast(`Failed to change status: ${err.message}`, 'error');
      }
   };
 
@@ -93,10 +100,11 @@ const UserManagementPage: React.FC = () => {
     if (!deletingUser) return;
     try {
       await deleteUser(deletingUser.id);
+      addToast('User deleted successfully.', 'success');
       fetchUsers();
       setDeletingUser(null);
     } catch (err: any) {
-      alert(`Failed to delete user: ${err.message}`);
+      addToast(`Failed to delete user: ${err.message}`, 'error');
       setDeletingUser(null);
     }
   };

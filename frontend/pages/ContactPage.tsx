@@ -2,8 +2,19 @@ import React from 'react';
 import SectionWrapper from '../components/SectionWrapper.tsx';
 import Button from '../components/Button.tsx';
 import { FiMail, FiPhone, FiMapPin } from 'react-icons/fi';
+import { useToast } from '../context/ToastContext.tsx';
 
 const ContactPage: React.FC = () => {
+  const { addToast } = useToast();
+
+  const handleSendMessage = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // In a real app, you would handle form submission logic here.
+    // For this placeholder, we'll just show a success message.
+    addToast('Message sent successfully! We will get back to you soon.', 'success');
+    e.currentTarget.reset();
+  };
+
   return (
     <div className="bg-warm-gray font-sans">
       <div className="bg-white py-16">
@@ -19,7 +30,7 @@ const ContactPage: React.FC = () => {
             {/* Contact Form */}
             <div className="bg-white p-8 rounded-lg shadow-lg">
               <h2 className="text-2xl font-bold font-serif text-navy-blue mb-6">Send us a message</h2>
-              <form action="#" method="POST" className="space-y-6">
+              <form onSubmit={handleSendMessage} className="space-y-6">
                 <div>
                   <label htmlFor="name" className="sr-only">Full name</label>
                   <input type="text" name="name" id="name" autoComplete="name" placeholder="Full name" required className="block w-full shadow-sm py-3 px-4 placeholder-warm-gray-500 focus:ring-sky-blue focus:border-sky-blue border-warm-gray-300 rounded-md" />

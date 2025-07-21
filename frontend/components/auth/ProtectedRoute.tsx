@@ -1,19 +1,21 @@
 
 import React, { useContext } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { useLocation, Navigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext.tsx';
+import type { User } from '../../types.ts';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  allowedRoles: User['role'][];
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
   const { user, loading } = useContext(AuthContext);
   const location = useLocation();
 
   if (loading) {
     // You can add a loading spinner here
-    return <div>Loading...</div>;
+    return <div className="flex h-screen w-full items-center justify-center">Loading...</div>;
   }
 
   if (!user) {
@@ -23,8 +25,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
-  if (user.role !== 'admin') {
-      // If user is logged in but not an admin, redirect to home page or an 'unauthorized' page.
+  if (!allowedRoles.includes(user.role)) {
+      // If user is logged in but their role is not permitted, redirect to home page.
       return <Navigate to="/" replace />;
   }
 

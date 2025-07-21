@@ -1,14 +1,14 @@
 
+
 import React, { useState, useContext, useRef, useEffect } from 'react';
-import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { FiMenu, FiX, FiHeart, FiUser, FiLogOut, FiGrid } from 'react-icons/fi';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { FiMenu, FiX, FiHeart, FiUser, FiLogOut, FiGrid, FiCheckSquare, FiBriefcase } from 'react-icons/fi';
 import Button from './Button.tsx';
 import ThemeToggle from './ThemeToggle.tsx';
 import { AuthContext } from '../context/AuthContext.tsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const NavLinks = () => {
-  const { user } = useContext(AuthContext);
   const baseClass = "px-3 py-2 rounded-md text-sm font-medium transition-colors";
   const activeClass = "text-brand-gold";
   const inactiveClass = "text-gray-700 dark:text-gray-200 hover:text-brand-gold dark:hover:text-brand-gold";
@@ -18,10 +18,7 @@ const NavLinks = () => {
       <NavLink to="/" className={({ isActive }) => `${baseClass} ${isActive ? activeClass : inactiveClass}`}>Home</NavLink>
       <NavLink to="/about" className={({ isActive }) => `${baseClass} ${isActive ? activeClass : inactiveClass}`}>About</NavLink>
       <NavLink to="/explore" className={({ isActive }) => `${baseClass} ${isActive ? activeClass : inactiveClass}`}>Explore</NavLink>
-      {user?.role === 'admin' && (
-        <NavLink to="/admin" className={({ isActive }) => `${baseClass} ${isActive ? activeClass : inactiveClass}`}>Admin Dashboard</NavLink>
-      )}
-       <NavLink to="/contact" className={({ isActive }) => `${baseClass} ${isActive ? activeClass : inactiveClass}`}>Contact</NavLink>
+      <NavLink to="/contact" className={({ isActive }) => `${baseClass} ${isActive ? activeClass : inactiveClass}`}>Contact</NavLink>
     </>
   );
 };
@@ -51,6 +48,13 @@ const Header: React.FC = () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
+
+    const profileMenuAnimation = {
+        initial: { opacity: 0, scale: 0.95, y: -10 },
+        animate: { opacity: 1, scale: 1, y: 0 },
+        exit: { opacity: 0, scale: 0.95, y: -10 },
+        transition: { duration: 0.1 }
+    };
 
     return (
         <header className="bg-white/80 dark:bg-brand-dark/80 backdrop-blur-md shadow-sm sticky top-0 z-50 transition-colors">
@@ -82,23 +86,37 @@ const Header: React.FC = () => {
                                 <AnimatePresence>
                                     {isProfileMenuOpen && (
                                         <motion.div
-                                            initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                                            transition={{ duration: 0.1 }}
-                                            className="absolute right-0 mt-2 w-48 bg-white dark:bg-brand-dark-200 rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 origin-top-right z-50"
+                                            {...profileMenuAnimation}
+                                            className="absolute right-0 mt-2 w-56 bg-white dark:bg-brand-dark-200 rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 origin-top-right z-50"
                                             role="menu"
                                             aria-orientation="vertical"
                                         >
                                             <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 border-b border-gray-200 dark:border-gray-600">Signed in as <br/><strong className="truncate">{user.name}</strong></div>
-                                            <Link to={`/profile/${user.username}`} onClick={() => setIsProfileMenuOpen(false)} className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-brand-dark" role="menuitem">
-                                                <FiUser className="mr-2"/> Profile
-                                            </Link>
-                                            {user.role === 'admin' && (
-                                                <Link to="/admin" onClick={() => setIsProfileMenuOpen(false)} className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-brand-dark" role="menuitem">
-                                                    <FiGrid className="mr-2"/> Dashboard
+                                            
+                                            {user.role === 'ngo' ? (
+                                                <Link to="/ngo/dashboard" onClick={() => setIsProfileMenuOpen(false)} className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-brand-dark" role="menuitem">
+                                                    <FiHeart className="mr-2"/> NGO Dashboard
+                                                </Link>
+                                            ) : user.role === 'company' ? (
+                                                <Link to="/company/dashboard" onClick={() => setIsProfileMenuOpen(false)} className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-brand-dark" role="menuitem">
+                                                    <FiBriefcase className="mr-2"/> Company Dashboard
+                                                </Link>
+                                            ) : user.role === 'donor' ? (
+                                                <Link to="/donor/dashboard" onClick={() => setIsProfileMenuOpen(false)} className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-brand-dark" role="menuitem">
+                                                    <FiGrid className="mr-2"/> My Dashboard
+                                                </Link>
+                                            ) : (
+                                                <Link to={`/profile/${user.username}`} onClick={() => setIsProfileMenuOpen(false)} className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-brand-dark" role="menuitem">
+                                                    <FiUser className="mr-2"/> Profile
                                                 </Link>
                                             )}
+
+                                            {user.role === 'admin' && (
+                                                <Link to="/admin" onClick={() => setIsProfileMenuOpen(false)} className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-brand-dark" role="menuitem">
+                                                    <FiGrid className="mr-2"/> Admin Dashboard
+                                                </Link>
+                                            )}
+                                            
                                             <button onClick={() => { handleLogout(); setIsProfileMenuOpen(false); }} className="flex items-center w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-brand-dark" role="menuitem">
                                                 <FiLogOut className="mr-2"/> Logout
                                             </button>
@@ -145,7 +163,21 @@ const Header: React.FC = () => {
                                             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{user.email}</p>
                                         </div>
                                     </div>
-                                    <Button to={`/profile/${user.username}`} variant="outline" fullWidth>Profile</Button>
+
+                                    {user.role === 'admin' && (
+                                        <Button to="/admin" variant="outline" fullWidth>Admin Dashboard</Button>
+                                    )}
+                                    
+                                    {user.role === 'ngo' ? (
+                                        <Button to="/ngo/dashboard" variant="outline" fullWidth>NGO Dashboard</Button>
+                                    ) : user.role === 'company' ? (
+                                        <Button to="/company/dashboard" variant="outline" fullWidth>Company Dashboard</Button>
+                                    ) : user.role === 'donor' ? (
+                                        <Button to="/donor/dashboard" variant="outline" fullWidth>My Dashboard</Button>
+                                    ) : (
+                                        <Button to={`/profile/${user.username}`} variant="outline" fullWidth>Profile</Button>
+                                    )}
+
                                     <Button onClick={handleLogout} variant="secondary" fullWidth>Logout</Button>
                                 </>
                             ) : (

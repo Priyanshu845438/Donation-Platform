@@ -1,9 +1,13 @@
 
+
+
+
 import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import SectionWrapper from '../components/SectionWrapper.tsx';
 import Button from '../components/Button.tsx';
 import { AuthContext } from '../context/AuthContext.tsx';
+import { useToast } from '../context/ToastContext.tsx';
 import { FiUserPlus } from 'react-icons/fi';
 
 const SignupPage: React.FC = () => {
@@ -17,6 +21,7 @@ const SignupPage: React.FC = () => {
   const [success, setSuccess] = useState(false);
 
   const { signup } = useContext(AuthContext);
+  const { addToast } = useToast();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,7 +31,9 @@ const SignupPage: React.FC = () => {
     setSuccess(false);
 
     if (password.length < 6) {
-        setError("Password must be at least 6 characters long.");
+        const msg = "Password must be at least 6 characters long.";
+        setError(msg);
+        addToast(msg, 'error');
         setLoading(false);
         return;
     }
@@ -35,13 +42,15 @@ const SignupPage: React.FC = () => {
       const userData = { fullName: name, email, password, phoneNumber, role };
       const newUser = await signup(userData);
       if (newUser) {
+        addToast('Registration successful!', 'success');
         setSuccess(true);
       } else {
-         // The signup function in AuthContext will throw an error on failure
-         setError('An unexpected error occurred. The user might already exist.');
+         addToast('An unexpected error occurred. The user might already exist.', 'error');
       }
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred. Please try again.');
+      const msg = err.message || 'An unexpected error occurred. Please try again.';
+      setError(msg);
+      addToast(msg, 'error');
     } finally {
       setLoading(false);
     }

@@ -209,7 +209,7 @@ class AuthController {
 
             // Handle file upload
             if (req.file) {
-                updateData.profileImage = `/uploads/profile/${req.file.filename}`;
+                updateData.profileImage = `/uploads/Profile/${req.file.filename}`;
             }
 
             let updatedProfile = null;
@@ -245,7 +245,41 @@ class AuthController {
 
         } catch (error) {
             console.error("Update profile error:", error);
-            return createErrorResponse(res, 500, "Failed to update profile", error.message);
+            res.status(500).json({ message: "Failed to update profile", error: error.message });
+        }
+    }
+
+    // Get user profile files
+    static async getProfileFiles(req, res) {
+        try {
+            const userId = req.user._id || req.user.id;
+
+            const user = await User.findById(userId).select('profileImage fullName email role');
+            if (!user) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: "User not found" 
+                });
+            }
+
+            res.json({
+                success: true,
+                message: "Profile files retrieved successfully",
+                data: {
+                    profileImage: user.profileImage,
+                    fullName: user.fullName,
+                    email: user.email,
+                    role: user.role
+                }
+            });
+
+        } catch (error) {
+            console.error("Get profile files error:", error);
+            res.status(500).json({ 
+                success: false, 
+                message: "Failed to retrieve profile files", 
+                error: error.message 
+            });
         }
     }
 

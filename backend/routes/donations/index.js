@@ -1,4 +1,16 @@
 
+// Create donation (public endpoint - no auth required)
+router.post("/create", optionalAuth, async (req, res) => {
+    try {
+        const donationController = require("../../controllers/donationController");
+        return donationController.createDonation(req, res);
+    } catch (error) {
+        console.error("Create donation error:", error);
+        return createErrorResponse(res, 500, "Failed to create donation", error.message);
+    }
+});
+
+
 const express = require("express");
 const Donation = require("../../models/Donation");
 const Company = require("../../models/Company");
@@ -6,6 +18,21 @@ const NGO = require("../../models/NGO");
 const Campaign = require("../../models/Campaign");
 const User = require("../../models/User");
 const authMiddleware = require("../../middleware/auth");
+
+// Optional auth middleware for donations
+const optionalAuth = (req, res, next) => {
+    const token = req.header('x-auth-token') || req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (token) {
+        try {
+            const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET);
+            req.user = decoded;
+        } catch (error) {
+            // Token invalid, continue as guest
+        }
+    }
+    next();
+};
 const { createErrorResponse, createSuccessResponse } = require("../../utils/errorHandler");
 
 const router = express.Router();

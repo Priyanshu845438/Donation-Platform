@@ -4,20 +4,121 @@ const User = require('../models/User');
 const logger = require('../utils/logger');
 const { sanitizeInput } = require('../utils/sanitizer');
 const { validateEmail, validatePhone } = require('../utils/validators');
+const { createSuccessResponse, createErrorResponse } = require("../utils/errorHandler");
+
+// Get all donations (Admin only)
+const getAllDonations = async (req, res) => {
+    try {
+        const { 
+            page = 1, 
+            limit = 15, 
+            status, 
+            campaignId, 
+            startDate, 
+            endDate, 
+            minAmount, 
+            maxAmount,
+            sortBy = 'donationDate',
+            sortOrder = 'desc'
+        } = req.query;
+
+        // Build query
+        let query = {};
+
+        if (status) query.status = status;
+        if (campaignId) query.campaignId = campaignId;
+        if (startDate || endDate) {
+            query.donationDate = {};
+            if (startDate) query.donationDate.$gte = new Date(startDate);
+            if (endDate) query.donationDate.$lte = new Date(endDate);
+        }
+        if (minAmount || maxAmount) {
+            query.amount = {};
+            if (minAmount) query.amount.$gte = parseInt(minAmount);
+            if (maxAmount) query.amount.$lte = parseInt(maxAmount);
+        }
+
+        // Pagination
+        const pageNum = Math.max(1, parseInt(page));
+        const limitNum = Math.min(50, Math.max(1, parseInt(limit)));
+        const skip = (pageNum - 1) * limitNum;
+
+        // Sort options
+        const sortOptions = {};
+        sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+        const donations = await Donation.find(query)
+            .populate("donorId", "fullName email")
+            .populate("companyId", "companyName")
+            .populate({
+                path: "campaignId",
+                select: "campaignName title ngoId",
+                populate: {
+                    path: "ngoId",
+                    select: "ngoName"
+                }
+            })
+            .sort(sortOptions)
+            .skip(skip)
+            .limit(limitNum);
+
+        const total = await Donation.countDocuments(query);
+
+        // Calculate summary statistics
+        const summary = await Donation.aggregate([
+            { $match: query },
+            {
+                $group: {
+                    _id: null,
+                    totalAmount: { $sum: "$amount" },
+                    totalDonations: { $sum: 1 },
+                    completedAmount: {
+                        $sum: { $cond: [{ $eq: ["$status", "Completed"] }, "$amount", 0] }
+                    },
+                    completedDonations: {
+                        $sum: { $cond: [{ $eq: ["$status", "Completed"] }, 1, 0] }
+                    }
+                }
+            }
+        ]);
+
+        return createSuccessResponse(res, 200, {
+            message: "Donations retrieved successfully",
+            donations,
+            pagination: {
+                current: pageNum,
+                limit: limitNum,
+                total,
+                pages: Math.ceil(total / limitNum)
+            },
+            summary: summary[0] || {
+                totalAmount: 0,
+                totalDonations: 0,
+                completedAmount: 0,
+                completedDonations: 0
+            }
+        });
+
+    } catch (error) {
+        console.error("Get all donations error:", error);
+        return createErrorResponse(res, 500, "Failed to retrieve donations", error.message);
+    }
+};
 
 /**
  * Create a new donation
  */
-exports.createDonation = async (req, res) => {
+const createDonation = async (req, res) => {
     try {
-        const {
-            campaignId,
-            amount,
-            donorName,
-            donorEmail,
-            donorPhone,
-            message,
-            isAnonymous,
+        const { 
+            campaignId, 
+            amount, 
+            donorName, 
+            donorEmail, 
+            donorPhone, 
+            anonymous = false,
+            message = '',
+            companyId,
             paymentMethod
         } = req.body;
 
@@ -29,7 +130,8 @@ exports.createDonation = async (req, res) => {
             donorEmail: sanitizeInput(donorEmail).toLowerCase(),
             donorPhone: sanitizeInput(donorPhone),
             message: sanitizeInput(message),
-            isAnonymous: Boolean(isAnonymous),
+            isAnonymous: Boolean(anonymous),
+            companyId: sanitizeInput(companyId),
             paymentMethod: sanitizeInput(paymentMethod)
         };
 
@@ -63,7 +165,7 @@ exports.createDonation = async (req, res) => {
         }
 
         const validPaymentMethods = ['credit_card', 'debit_card', 'upi', 'net_banking', 'wallet'];
-        if (!validPaymentMethods.includes(sanitizedData.paymentMethod)) {
+        if (paymentMethod && !validPaymentMethods.includes(sanitizedData.paymentMethod)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid payment method'
@@ -96,10 +198,38 @@ exports.createDonation = async (req, res) => {
         // Generate unique order ID
         const orderId = `DON_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+        let donorId = req.user ? req.user.id : null;
+
+        // For guest donations, create or find user account
+        if (!donorId && sanitizedData.donorEmail) {
+            let existingUser = await User.findOne({ email: sanitizedData.donorEmail });
+
+            if (!existingUser) {
+                // Create new donor account with default password
+                const bcrypt = require('bcryptjs');
+                const hashedPassword = await bcrypt.hash('Pass123', 12);
+
+                existingUser = await User.create({
+                    fullName: sanitizedData.donorName,
+                    email: sanitizedData.donorEmail,
+                    password: hashedPassword,
+                    phoneNumber: sanitizedData.donorPhone || '0000000000',
+                    role: 'donor',
+                    isVerified: true,
+                    approvalStatus: 'approved',
+                    isActive: true
+                });
+
+                logger.info(`Auto-generated donor account for: ${sanitizedData.donorEmail}`);
+            }
+
+            donorId = existingUser._id;
+        }
+
         // Create donation record
         const donation = await Donation.create({
             campaignId: sanitizedData.campaignId,
-            donorId: req.user ? req.user.id : null,
+            donorId: donorId,
             amount: sanitizedData.amount,
             donorName: sanitizedData.donorName,
             donorEmail: sanitizedData.donorEmail,
@@ -550,4 +680,14 @@ exports.getDonationStats = async (req, res) => {
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
+};
+
+module.exports = {
+    createDonation,
+    getDonationById,
+    getUserDonations,
+    getCampaignDonations,
+    getAllDonations,
+    updateDonationStatus,
+    getDonationStats
 };

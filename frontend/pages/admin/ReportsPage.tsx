@@ -1,10 +1,35 @@
-
 import React, { useState } from 'react';
 import UserReport from '../../components/admin/reports/UserReport.tsx';
 import CampaignReport from '../../components/admin/reports/CampaignReport.tsx';
 import DonationReport from '../../components/admin/reports/DonationReport.tsx';
 import FinancialReport from '../../components/admin/reports/FinancialReport.tsx';
 import { FiUsers, FiHeart, FiDollarSign, FiBarChart2 } from 'react-icons/fi';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  LineElement,
+  PointElement,
+  Filler
+} from 'chart.js';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  LineElement,
+  PointElement,
+  Filler
+);
 
 type ReportTab = 'users' | 'campaigns' | 'donations' | 'financial';
 

@@ -33,6 +33,7 @@ import TaskManagerPage from './pages/TaskManagerPage.tsx';
 import PaymentTestPage from './pages/PaymentTestPage.tsx';
 import { AuthContext } from './context/AuthContext.tsx';
 import { useContext } from 'react';
+import './utils/chartSetup'; // Register Chart.js plugins including Filler
 
 // Admin Pages (Lazy Loaded)
 const AdminDashboardPage = lazy(() => import('./pages/admin/DashboardPage.tsx'));

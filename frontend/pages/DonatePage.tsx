@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useContext } from 'react';
 import SectionWrapper from '../components/SectionWrapper.tsx';
 import { getPublicCampaigns, paymentAPI } from '../services/api.ts';
@@ -20,7 +19,8 @@ const DonatePage: React.FC = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [donationSuccess, setDonationSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+  const [donorInfo, setDonorInfo] = useState({ name: '', email: '', phone: '' });
+
   const location = useLocation();
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -31,10 +31,10 @@ const DonatePage: React.FC = () => {
         const allCampaigns = await getPublicCampaigns();
         const activeCampaigns = allCampaigns.filter(c => c.status === 'active');
         setCampaigns(activeCampaigns);
-        
+
         const queryParams = new URLSearchParams(location.search);
         const campaignIdFromQuery = queryParams.get('campaign');
-        
+
         if (campaignIdFromQuery && activeCampaigns.some(c => c._id === campaignIdFromQuery)) {
             setSelectedCampaignId(campaignIdFromQuery);
         } else if (activeCampaigns.length > 0) {
@@ -64,30 +64,27 @@ const DonatePage: React.FC = () => {
         setAmount(0);
     }
   };
-  
+
+  const handleDonorInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setDonorInfo({ ...donorInfo, [e.target.name]: e.target.value });
+  };
+
   const handleDonationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    if (!user) {
-        addToast('Please login to make a donation.', 'error');
-        navigate('/login', { state: { from: location } });
-        setLoading(false);
-        return;
-    }
 
     try {
         const orderPayload = {
             campaignId: selectedCampaignId === 'general' ? null : selectedCampaignId,
             amount,
-            donorName: user.name,
-            donorEmail: user.email,
-            donorPhone: user.phoneNumber,
+            donorName: user?.name || donorInfo.name,
+            donorEmail: user?.email || donorInfo.email,
+            donorPhone: user?.phoneNumber || donorInfo.phone,
             paymentMethod: 'razorpay'
         };
 
         const orderData = await paymentAPI.createOrder(orderPayload);
-        
+
         if (orderData && orderData.success) {
             const rzpOptions = {
                 key: 'rzp_test_1DP5mmOlF5G5ag', // Dummy Razorpay Key ID for testing
@@ -108,6 +105,9 @@ const DonatePage: React.FC = () => {
                         if (verificationResult.success) {
                             addToast('Payment completed successfully!', 'success');
                             setDonationSuccess(true);
+                             if (!user && donorInfo.email) {
+                                addToast(`Donation successful! A donor account has been created with email: ${donorInfo.email} and password: Pass123`, 'success');
+                            }
                         } else {
                             throw new Error(verificationResult.message || 'Payment verification failed.');
                         }
@@ -116,9 +116,9 @@ const DonatePage: React.FC = () => {
                     }
                 },
                 prefill: {
-                    name: user.name,
-                    email: user.email,
-                    contact: user.phoneNumber,
+                    name: user?.name || donorInfo.name,
+                    email: user?.email || donorInfo.email,
+                    contact: user?.phoneNumber || donorInfo.phone,
                 },
                 theme: {
                     color: '#003f5c',
@@ -146,7 +146,7 @@ const DonatePage: React.FC = () => {
   const gstOnFee = Math.round(platformFee * 0.18);
   const totalDeduction = platformFee + gstOnFee;
   const amountToNgo = amount - totalDeduction;
-  
+
   if (donationSuccess) {
     return (
         <div className="bg-warm-gray dark:bg-brand-dark font-sans min-h-screen flex items-center justify-center py-16">
@@ -180,6 +180,14 @@ const DonatePage: React.FC = () => {
             <div className="bg-white dark:bg-brand-dark-200 rounded-xl shadow-xl overflow-hidden">
                 <div className="p-8 md:p-10">
                     <form onSubmit={handleDonationSubmit} className="space-y-8">
+                         {!user && (
+                            <div>
+                                <label className="block text-lg font-semibold text-navy-blue dark:text-white mb-2">Donor Information</label>
+                                <input type="text" name="name" placeholder="Full Name" value={donorInfo.name} onChange={handleDonorInfoChange} required className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md bg-transparent focus:outline-none focus:ring-2 focus:ring-brand-gold mb-3" />
+                                <input type="email" name="email" placeholder="Email Address" value={donorInfo.email} onChange={handleDonorInfoChange} required className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md bg-transparent focus:outline-none focus:ring-2 focus:ring-brand-gold mb-3" />
+                                <input type="tel" name="phone" placeholder="Phone Number" value={donorInfo.phone} onChange={handleDonorInfoChange} required className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md bg-transparent focus:outline-none focus:ring-2 focus:ring-brand-gold" />
+                            </div>
+                        )}
                         <div>
                         <label htmlFor="campaign" className="block text-lg font-semibold text-navy-blue dark:text-white mb-2">1. Choose a Campaign</label>
                         <select
@@ -192,7 +200,7 @@ const DonatePage: React.FC = () => {
                             <option value="general">Donate to General Fund</option>
                         </select>
                         </div>
-                        
+
                         <div>
                         <label className="block text-lg font-semibold text-navy-blue dark:text-white mb-2">2. Select an Amount (INR)</label>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -222,7 +230,7 @@ const DonatePage: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="text-center pt-4">
                             <Button type="submit" className="w-full md:w-auto text-lg" disabled={loading}>
                                 <FiCreditCard className="mr-2" /> {loading ? 'Processing...' : `Donate ₹${amount.toLocaleString()}`}

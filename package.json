@@ -24,6 +24,8 @@
     "concurrently": "^9.2.0"
   },
   "dependencies": {
+    "chart.js": "^4.5.0",
+    "chartjs-adapter-date-fns": "^3.0.0",
     "exceljs": "^4.4.0",
     "pdfkit": "^0.17.1"
   }

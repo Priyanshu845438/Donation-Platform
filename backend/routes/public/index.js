@@ -13,6 +13,9 @@ const router = express.Router();
 // Use notice routes
 router.use("/notices", noticeRoutes);
 
+// Use settings routes
+router.use("/settings", require("./settings"));
+
 // Get all public campaigns
 router.get("/campaigns", async (req, res) => {
     try {
